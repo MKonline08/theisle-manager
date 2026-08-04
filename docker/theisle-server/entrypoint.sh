@@ -101,16 +101,25 @@ if [[ "$SERVER_MAP" != "Gateway" ]]; then
   MAP_PATH="$SERVER_MAP"
 fi
 LAUNCH_URL="${MAP_PATH}?Port=${SERVER_PORT}?QueryPort=${QUERY_PORT}?MaxPlayers=${MAX_PLAYERS}?SessionName=${SERVER_NAME}?MultiHome=0.0.0.0${PASSWORD_ARG[*]}"
+# Evrima installs its standard EOS identity in its default configuration. Prefer
+# explicit host settings, but automatically use the installed defaults so a clean
+# CasaOS installation can start without users having to hunt through game files.
+EOS_CLIENT_ID="${THEISLE_EOS_CLIENT_ID:-}"
+EOS_CLIENT_SECRET="${THEISLE_EOS_CLIENT_SECRET:-}"
+DEFAULT_ENGINE="$INSTALL_DIR/TheIsle/Config/DefaultEngine.ini"
+if [[ -z "$EOS_CLIENT_ID" || -z "$EOS_CLIENT_SECRET" ]] && [[ -f "$DEFAULT_ENGINE" ]]; then
+  EOS_CLIENT_ID="$(sed -nE 's/^[[:space:]]*DedicatedServerClientId[[:space:]]*=[[:space:]]*(.*)[[:space:]]*$/\\1/p' "$DEFAULT_ENGINE" | head -n 1)"
+  EOS_CLIENT_SECRET="$(sed -nE 's/^[[:space:]]*DedicatedServerClientSecret[[:space:]]*=[[:space:]]*(.*)[[:space:]]*$/\\1/p' "$DEFAULT_ENGINE" | head -n 1)"
+  [[ -n "$EOS_CLIENT_ID" && -n "$EOS_CLIENT_SECRET" ]] && echo "[manager] Using Evrima's installed default EOS configuration."
+fi
 EOS_ARGS=()
-if [[ -n "${THEISLE_EOS_CLIENT_ID:-}" && -n "${THEISLE_EOS_CLIENT_SECRET:-}" ]]; then
-  # Supply the identity both as Engine.ini and launch overrides so Evrima reliably
-  # receives it on Linux even when the game's config discovery changes between builds.
+if [[ -n "$EOS_CLIENT_ID" && -n "$EOS_CLIENT_SECRET" ]]; then
   EOS_ARGS=(
-    "-ini:Engine:[EpicOnlineServices]:DedicatedServerClientId=${THEISLE_EOS_CLIENT_ID}"
-    "-ini:Engine:[EpicOnlineServices]:DedicatedServerClientSecret=${THEISLE_EOS_CLIENT_SECRET}"
+    "-ini:Engine:[EpicOnlineServices]:DedicatedServerClientId=$EOS_CLIENT_ID"
+    "-ini:Engine:[EpicOnlineServices]:DedicatedServerClientSecret=$EOS_CLIENT_SECRET"
   )
 else
-  echo "[manager] EOS credentials are not configured. Set THEISLE_EOS_CLIENT_ID and THEISLE_EOS_CLIENT_SECRET in MK Panel's .env file." >&2
+  echo "[manager] EOS credentials were not found in the installed server or MK Panel .env." >&2
 fi
 echo "[manager] Starting '${SERVER_NAME}' on game port ${SERVER_PORT}, query port ${QUERY_PORT}"
 
