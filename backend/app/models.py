@@ -34,7 +34,7 @@ class GameServer(Base):
     game_port: Mapped[int] = mapped_column(Integer, unique=True)
     query_port: Mapped[int] = mapped_column(Integer, unique=True)
     max_players: Mapped[int] = mapped_column(Integer, default=100)
-    ram_limit_mb: Mapped[int] = mapped_column(Integer, default=4096)
+    ram_limit_mb: Mapped[int] = mapped_column(Integer, default=8192)
     cpu_limit: Mapped[int] = mapped_column(Integer, default=200)  # 100 = one CPU core
     disk_limit_mb: Mapped[int] = mapped_column(Integer, default=20480)
     region: Mapped[str] = mapped_column(String(64), default="")
