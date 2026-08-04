@@ -163,6 +163,22 @@ class DockerServerManager:
         game_ini_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         game_ini_path.chmod(0o666)
 
+        # Evrima's server browser requires a dedicated-server EOS identity.
+        # The values are held only in the host environment, never in panel backups.
+        eos_client_id = os.getenv("THEISLE_EOS_CLIENT_ID", "").strip()
+        eos_client_secret = os.getenv("THEISLE_EOS_CLIENT_SECRET", "").strip()
+        engine_ini_path = root / "TheIsle" / "Saved" / "Config" / "LinuxServer" / "Engine.ini"
+        engine_lines = ["[EpicOnlineServices]"]
+        if eos_client_id and eos_client_secret:
+            engine_lines.extend([
+                f"DedicatedServerClientId={eos_client_id}",
+                f"DedicatedServerClientSecret={eos_client_secret}",
+            ])
+        else:
+            engine_lines.append("; Configure THEISLE_EOS_CLIENT_ID and THEISLE_EOS_CLIENT_SECRET in the panel .env file.")
+        engine_ini_path.write_text("\n".join(engine_lines) + "\n", encoding="utf-8")
+        engine_ini_path.chmod(0o600)
+
     def ensure_container(self, server: GameServer):
         self.assert_disk_budget(server)
         container = self._container(server)
@@ -210,6 +226,8 @@ class DockerServerManager:
                     "MAX_PLAYERS": str(server.max_players),
                     "SERVER_PASSWORD": decrypt(server.password),
                     "SERVER_MAP": str((server.config or {}).get("world", {}).get("map", "Gateway")),
+                    "THEISLE_EOS_CLIENT_ID": os.getenv("THEISLE_EOS_CLIENT_ID", ""),
+                    "THEISLE_EOS_CLIENT_SECRET": os.getenv("THEISLE_EOS_CLIENT_SECRET", ""),
                 },
                 volumes={str(source): {"bind": "/server", "mode": "rw"}},
                 ports={
