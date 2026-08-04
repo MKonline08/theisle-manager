@@ -2,6 +2,9 @@
 set -Eeuo pipefail
 
 APP_ID="${STEAM_APP_ID:-412680}"
+# The current public dedicated-server depot is published on this Steam beta branch.
+# Set STEAM_BRANCH=public only if the publisher makes the default branch usable again.
+STEAM_BRANCH="${STEAM_BRANCH:-evrima}"
 INSTALL_DIR="${INSTALL_DIR:-/server}"
 SERVER_PORT="${SERVER_PORT:-7777}"
 QUERY_PORT="${QUERY_PORT:-7778}"
@@ -20,8 +23,13 @@ fi
 mkdir -p "$INSTALL_DIR"/{Saved,Config,Logs,Mods,Plugins,Backups}
 
 install_or_update() {
-  echo "[manager] Installing or updating Steam app ${APP_ID}"
-  "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous +app_update "$APP_ID" validate +quit
+  echo "[manager] Installing or updating Steam app ${APP_ID} (${STEAM_BRANCH:-public})"
+  APP_UPDATE=(+app_update "$APP_ID")
+  if [[ -n "$STEAM_BRANCH" && "$STEAM_BRANCH" != "public" ]]; then
+    APP_UPDATE+=(-beta "$STEAM_BRANCH")
+  fi
+  APP_UPDATE+=(validate +quit)
+  "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous "${APP_UPDATE[@]}"
 }
 
 case "${SERVER_ACTION:-run}" in
@@ -30,7 +38,12 @@ case "${SERVER_ACTION:-run}" in
   update) install_or_update; exit 0 ;;
   validate)
     echo "[manager] Validating Steam app ${APP_ID}"
-    "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous +app_update "$APP_ID" validate +quit
+    APP_UPDATE=(+app_update "$APP_ID")
+    if [[ -n "$STEAM_BRANCH" && "$STEAM_BRANCH" != "public" ]]; then
+      APP_UPDATE+=(-beta "$STEAM_BRANCH")
+    fi
+    APP_UPDATE+=(validate +quit)
+    "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous "${APP_UPDATE[@]}"
     exit 0 ;;
   workshop)
     : "${WORKSHOP_ID:?WORKSHOP_ID is required for workshop downloads}"
