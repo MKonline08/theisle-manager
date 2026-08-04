@@ -176,6 +176,7 @@ class DockerServerManager:
                 labels={"io.theisle.manager": "true", "io.theisle.server-id": server.id},
                 environment={
                     "STEAM_APP_ID": server.steam_app_id,
+                    "STEAM_BRANCH": self.settings.steam_branch,
                     "SERVER_NAME": server.name,
                     "SERVER_PORT": str(server.game_port),
                     "QUERY_PORT": str(server.query_port),
@@ -311,7 +312,7 @@ class DockerServerManager:
             raise ManagerError("Unsupported Steam action")
         source = self._host_data_dir() / "servers" / server.id
         self.assert_disk_budget(server)
-        env = {"SERVER_ACTION": action, "STEAM_APP_ID": server.steam_app_id}
+        env = {"SERVER_ACTION": action, "STEAM_APP_ID": server.steam_app_id, "STEAM_BRANCH": self.settings.steam_branch}
         if workshop_id:
             env["WORKSHOP_ID"] = workshop_id
         try:
