@@ -9,12 +9,19 @@ MAX_PLAYERS="${MAX_PLAYERS:-100}"
 SERVER_NAME="${SERVER_NAME:-The Isle Server}"
 SERVER_PASSWORD="${SERVER_PASSWORD:-}"
 SERVER_MAP="${SERVER_MAP:-Gateway}"
+# cm2network/steamcmd exposes SteamCMD as this script, not as a PATH command.
+STEAMCMD="${STEAMCMD_PATH:-/home/steam/steamcmd/steamcmd.sh}"
+
+if [[ ! -x "$STEAMCMD" ]]; then
+  echo "[manager] SteamCMD is missing at $STEAMCMD" >&2
+  exit 127
+fi
 
 mkdir -p "$INSTALL_DIR"/{Saved,Config,Logs,Mods,Plugins,Backups}
 
 install_or_update() {
   echo "[manager] Installing or updating Steam app ${APP_ID}"
-  steamcmd +force_install_dir "$INSTALL_DIR" +login anonymous +app_update "$APP_ID" validate +quit
+  "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous +app_update "$APP_ID" validate +quit
 }
 
 case "${SERVER_ACTION:-run}" in
@@ -23,12 +30,12 @@ case "${SERVER_ACTION:-run}" in
   update) install_or_update; exit 0 ;;
   validate)
     echo "[manager] Validating Steam app ${APP_ID}"
-    steamcmd +force_install_dir "$INSTALL_DIR" +login anonymous +app_update "$APP_ID" validate +quit
+    "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous +app_update "$APP_ID" validate +quit
     exit 0 ;;
   workshop)
     : "${WORKSHOP_ID:?WORKSHOP_ID is required for workshop downloads}"
     echo "[manager] Downloading Workshop item ${WORKSHOP_ID}"
-    steamcmd +force_install_dir "$INSTALL_DIR" +login anonymous +workshop_download_item "$APP_ID" "$WORKSHOP_ID" +quit
+    "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous +workshop_download_item "$APP_ID" "$WORKSHOP_ID" +quit
     SOURCE="${HOME}/Steam/steamapps/workshop/content/${APP_ID}/${WORKSHOP_ID}"
     if [[ -d "$SOURCE" ]]; then
       rm -rf "$INSTALL_DIR/Mods/$WORKSHOP_ID"
