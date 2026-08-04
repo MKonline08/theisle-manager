@@ -2,7 +2,7 @@
 
 A self-hosted Docker panel for running multiple isolated The Isle dedicated-server instances. It includes a React/Tailwind dashboard, FastAPI REST/WebSocket API, PostgreSQL persistence, SteamCMD lifecycle actions, backups, mod/plugin management, role-based access, and server resource limits.
 
-> Confirm the current dedicated-server app ID and SteamCMD account requirements from The Isle's official documentation before first deployment. The default `STEAM_APP_ID=412680` is configurable because publisher distribution can change.
+> The default configuration targets The Isle Dedicated Server app `412680` on its current public `evrima` branch. Both `STEAM_APP_ID` and `STEAM_BRANCH` are configurable because publisher distribution can change.
 
 ## Install on Debian or Ubuntu
 
@@ -102,7 +102,7 @@ Do not expose this panel directly to the public internet. Place it behind a TLS 
 | Problem | Resolution |
 | --- | --- |
 | Panel unavailable | Run `docker compose ps`, then `docker compose logs web api`; open the configured panel port in the firewall. |
-| Server will not start | Check Console output and confirm the Steam app ID and SteamCMD access. First installation may take time. |
+| Server will not start or SteamCMD says “Missing configuration” | Confirm `STEAM_APP_ID=412680` and `STEAM_BRANCH=evrima`; first installation may take time. |
 | Game image missing | Run `docker compose up -d --build`; the API waits for the build job. |
 | Port conflict | Use unused ports. The panel checks its own instances but cannot reserve unrelated host ports. |
 | Workshop fails | Verify app/item compatibility and anonymous SteamCMD access. |
