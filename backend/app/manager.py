@@ -238,6 +238,8 @@ class DockerServerManager:
 
     def start(self, server: GameServer) -> None:
         self.assert_disk_budget(server)
+        # Repair permissions for existing server storage as well as new servers.
+        self.prepare_server(server)
         container = self.ensure_container(server)
         container.reload()
         if container.status != "running":
