@@ -432,6 +432,12 @@ def server_action(server_id: str, action: str, db: Annotated[Session, Depends(ge
         elif action == "restart":
             manager.restart(server)
             output = "Server restart requested"
+        elif action == "install" and server.game_type == "theisle":
+            # A first install can take several minutes. Starting the game container
+            # returns immediately while SteamCMD runs in the container, so CasaOS
+            # never times out the HTTP request and its output remains in Console.
+            manager.start(server)
+            output = "Installation started in the background. Open Console to follow progress; the server starts automatically when installation completes."
         elif action in {"install", "update", "verify"}:
             if server.game_type == "minecraft":
                 if action == "verify":
