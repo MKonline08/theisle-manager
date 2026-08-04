@@ -45,6 +45,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       TZ: ${TZ:-UTC}
       STEAM_APP_ID: ${STEAM_APP_ID:-412680}
+      STEAM_BRANCH: ${STEAM_BRANCH:-evrima}
       THEISLE_SERVER_IMAGE: ${THEISLE_SERVER_IMAGE:-theisle-manager-server:latest}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       LOG_RETENTION_DAYS: 14
