@@ -49,6 +49,7 @@ Create a server from the dashboard with its name, description, version label, po
 - **Install** downloads the configured app through SteamCMD.
 - **Start**, **Stop**, and **Restart** control only that server's container.
 - **Update** creates a pre-update archive, runs SteamCMD, and restores the archive automatically if SteamCMD fails.
+- Optional daily or weekly automatic game updates use the same recovery flow and preserve the server's prior running state.
 - **Verify** runs SteamCMD validation.
 - Dashboard metrics show container CPU/RAM/network counters, disk usage, parsed player count when the game log provides it, map, uptime, status, and version label.
 
@@ -56,13 +57,15 @@ Console input is deliberately limited to `restart`, `stop`, `save`, `broadcast`,
 
 ## Configuration, mods, and plugins
 
-The configuration screen contains forms for game password, player count, gameplay multipliers, admins/moderators, map/weather/time, networking/RCON, and automatic backup frequency. Saving writes panel configuration and generated `.ini` data; manual `.ini` editing is not required. Changing game/query ports recreates the game container, while other runtime changes should be followed by a normal restart.
+The configuration screen contains forms for game password, player count, gameplay multipliers, admins/moderators, map/weather/time, networking/RCON, automatic backup frequency, automatic SteamCMD updates, and Discord webhook notifications. Saving writes panel configuration and generated `.ini` data; manual `.ini` editing is not required. Changing game/query ports recreates the game container, while other runtime changes should be followed by a normal restart.
 
-The **Mods** and **Plugins** tabs manage their own folders. Upload, enable/disable (disabled files retain a `.disabled` suffix), or delete files. Mods can also be installed by Steam Workshop ID when the current dedicated-server app makes compatible Workshop content available.
+The **Mods** and **Plugins** tabs manage their own folders. Upload, enable/disable (disabled files retain a `.disabled` suffix), or delete files. Mods can also be installed by Steam Workshop ID when the current dedicated-server app makes compatible Workshop content available. Uploads are streamed to disk in 1 MB chunks, so a configured file-size limit does not require holding the whole archive in API memory.
+
+Enable Discord per server in **Configuration** and paste an HTTPS Discord webhook URL. You can choose state changes, game updates, backups/restores, and Workshop installs. URLs are encrypted at rest; sending failures never block server operations.
 
 ## Backup and recovery
 
-Per-server backups archive `Saved`, `Config`, `Mods`, and `Plugins`. Create them manually or choose hourly, daily, or weekly automatic backups. Restore stops the server first and rejects unsafe archive paths.
+Per-server backups archive `Saved`, `Config`, `Mods`, and `Plugins`. Create them manually or choose hourly, daily, or weekly automatic backups. Restore stops the server first and rejects unsafe paths, encrypted archives, unexpected folders, excessive file counts, and uncompressed payloads above the configured restore limit.
 
 Create a portable full-panel backup (database, manager data, and environment file) with:
 
@@ -86,7 +89,8 @@ The update script first creates a full panel backup, fast-forwards the checkout,
 ## Security
 
 - First-run setup creates the Owner; Owners may add Admin, Moderator, and Viewer accounts.
-- User passwords use bcrypt. Game/RCON credentials are encrypted at rest using a key derived from required `JWT_SECRET`; normal server responses omit them.
+- User passwords use bcrypt. Game/RCON/Discord webhook credentials are encrypted at rest using a key derived from required `JWT_SECRET`; normal server responses omit them.
+- Discord notifications only permit HTTPS Discord webhook hosts, do not follow redirects, and disable mentions to avoid unintended pings.
 - JWT authentication protects API endpoints and console WebSockets.
 - Upload paths are sanitized and folder-limited. Restore validates archive paths.
 - The API container has Docker socket access because isolated server creation needs it. Treat Owner access as Docker-host administration.
@@ -102,6 +106,7 @@ Do not expose this panel directly to the public internet. Place it behind a TLS 
 | Game image missing | Run `docker compose up -d --build`; the API waits for the build job. |
 | Port conflict | Use unused ports. The panel checks its own instances but cannot reserve unrelated host ports. |
 | Workshop fails | Verify app/item compatibility and anonymous SteamCMD access. |
+| Discord messages do not arrive | Check the webhook URL, enable the desired events in Configuration, and confirm the server can reach Discord over HTTPS. |
 | RCON fails | Enable the dedicated server's RCON listener and enter exact host/port/password under Networking. |
 | API reference | Open `/api/docs` on the panel host. |
 

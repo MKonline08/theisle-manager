@@ -6,10 +6,13 @@ import shutil
 import socket
 import tempfile
 import time
+import uuid
 import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 import docker
 from docker.errors import APIError, DockerException, ImageNotFound, NotFound
@@ -25,6 +28,11 @@ SAFE_FILE = re.compile(r"[^A-Za-z0-9._-]+")
 
 class ManagerError(RuntimeError):
     pass
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, newurl):  # type: ignore[no-untyped-def]
+        return None
 
 
 def iso_now() -> str:
@@ -354,27 +362,64 @@ class DockerServerManager:
         archive_path = Path(backup.path)
         if not archive_path.is_file():
             raise ManagerError("Backup file no longer exists")
-        self.stop(server)
         root = self.server_dir(server.id)
-        with zipfile.ZipFile(archive_path) as archive:
-            for member in archive.infolist():
-                target = (root / member.filename).resolve()
-                if not target.is_relative_to(root.resolve()):
-                    raise ManagerError("Backup contains an unsafe file path")
-            archive.extractall(root)
+        root_resolved = root.resolve()
+        allowed_roots = {"Saved", "Config", "Mods", "Plugins"}
+        max_bytes = min(self.settings.max_restore_bytes, server.disk_limit_mb * 1024 * 1024)
+        total_bytes = 0
+        try:
+            with zipfile.ZipFile(archive_path) as archive:
+                members = archive.infolist()
+                if len(members) > self.settings.max_backup_files:
+                    raise ManagerError("Backup contains too many files")
+                for member in members:
+                    member_path = Path(member.filename)
+                    if member.is_dir():
+                        continue
+                    if member.flag_bits & 0x1:
+                        raise ManagerError("Encrypted backup archives are not supported")
+                    if not member_path.parts or member_path.parts[0] not in allowed_roots:
+                        raise ManagerError("Backup contains an unsupported file path")
+                    target = (root / member_path).resolve()
+                    if not target.is_relative_to(root_resolved):
+                        raise ManagerError("Backup contains an unsafe file path")
+                    total_bytes += member.file_size
+                    if total_bytes > max_bytes:
+                        raise ManagerError("Backup exceeds this server's restore size limit")
 
-    def upload(self, server: GameServer, category: str, filename: str, contents: bytes) -> Path:
+                self.stop(server)
+                for member in members:
+                    if member.is_dir():
+                        continue
+                    target = (root / Path(member.filename)).resolve()
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with archive.open(member, "r") as source, target.open("wb") as destination:
+                        shutil.copyfileobj(source, destination, length=1024 * 1024)
+        except (OSError, zipfile.BadZipFile) as exc:
+            raise ManagerError(f"Could not restore backup: {exc}") from exc
+
+    def _upload_destination(self, server: GameServer, category: str, filename: str) -> tuple[Path, str]:
         if category not in {"Mods", "Plugins"}:
             raise ManagerError("Invalid upload category")
         safe_name = SAFE_FILE.sub("-", Path(filename).name).strip(".-")
         if not safe_name:
             raise ManagerError("Invalid filename")
-        if len(contents) > 2 * 1024 * 1024 * 1024:
-            raise ManagerError("Upload exceeds the 2 GB limit")
-        self.assert_disk_budget(server, len(contents))
         destination = self.server_dir(server.id) / category / safe_name
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(contents)
+        return destination, safe_name
+
+    def create_upload_staging_path(self, server: GameServer, category: str, filename: str) -> Path:
+        _, safe_name = self._upload_destination(server, category, filename)
+        uploads = self.settings.data_dir / "uploads"
+        uploads.mkdir(parents=True, exist_ok=True)
+        return uploads / f"{server.id}-{uuid.uuid4().hex}-{safe_name}.part"
+
+    def commit_staged_upload(self, server: GameServer, category: str, filename: str, staging: Path) -> Path:
+        if not staging.is_file():
+            raise ManagerError("Uploaded file is missing")
+        self.assert_disk_budget(server, staging.stat().st_size)
+        destination, _ = self._upload_destination(server, category, filename)
+        os.replace(staging, destination)
         return destination
 
     def list_files(self, server: GameServer, category: str) -> list[dict[str, Any]]:
@@ -406,6 +451,34 @@ class DockerServerManager:
             raise ManagerError("File not found")
         path.unlink()
 
+    def notify_discord(self, server: GameServer, event: str, message: str) -> None:
+        """Send an optional, outbound-only Discord webhook notification.
+
+        Webhook URLs are validated before saving and errors are intentionally non-fatal:
+        an unavailable Discord endpoint must never interrupt server control actions.
+        """
+        discord = (server.config or {}).get("discord", {})
+        if not isinstance(discord, dict) or not discord.get("enabled"):
+            return
+        events = discord.get("events", {})
+        if not isinstance(events, dict) or not events.get(event, False):
+            return
+        webhook_url = decrypt(str(discord.get("webhook_url_encrypted", "")))
+        if not webhook_url:
+            return
+        body = json.dumps({
+            "username": "The Isle Manager",
+            "content": f"**{server.name}** - {message}"[:1900],
+            "allowed_mentions": {"parse": []},
+        }).encode("utf-8")
+        request = Request(webhook_url, data=body, headers={"Content-Type": "application/json", "User-Agent": "TheIsleManager/1.1"})
+        try:
+            with build_opener(_NoRedirect()).open(request, timeout=6) as response:
+                if response.status not in {200, 204}:
+                    return
+        except (HTTPError, URLError, OSError):
+            return
+
     def cleanup_logs(self) -> None:
         cutoff = time.time() - self.settings.log_retention_days * 86400
         for server_dir in (self.settings.data_dir / "servers").glob("*/Logs"):
@@ -429,4 +502,53 @@ class DockerServerManager:
                 self.create_backup(db, server, f"{schedule}-{now.strftime('%Y%m%d-%H%M%S')}", schedule)
                 created += 1
         self.cleanup_logs()
+        return created
+
+    def schedule_updates(self, db: Session) -> int:
+        """Apply configured game-server updates with a pre-update recovery point."""
+        from .models import AuditEvent
+
+        created = 0
+        now = datetime.now(timezone.utc)
+        intervals = {"daily": 24, "weekly": 168}
+        for server in db.query(GameServer).all():
+            automation = (server.config or {}).get("automation", {})
+            schedule = automation.get("update_schedule", "off") if isinstance(automation, dict) else "off"
+            hours = intervals.get(schedule)
+            if not hours:
+                continue
+            latest = (
+                db.query(AuditEvent)
+                .filter(AuditEvent.target == server.id, AuditEvent.action == "servers.auto_update")
+                .order_by(AuditEvent.created_at.desc())
+                .first()
+            )
+            if latest and (now - latest.created_at) < timedelta(hours=hours):
+                continue
+            was_running = self.status(server)["status"] == "running"
+            recovery_point: Backup | None = None
+            try:
+                recovery_point = self.create_backup(db, server, f"pre-auto-update-{now.strftime('%Y%m%d-%H%M%S')}", "pre-update")
+                self.stop(server)
+                output = self.run_steam_action(server, "update")
+                if was_running:
+                    self.start(server)
+                db.add(AuditEvent(action="servers.auto_update", target=server.id, detail=f"schedule={schedule}; {output[-500:]}"))
+                db.commit()
+                self.notify_discord(server, "server_updated", f"scheduled {schedule} update completed.")
+                created += 1
+            except ManagerError as exc:
+                if recovery_point:
+                    try:
+                        self.restore_backup(server, recovery_point)
+                    except ManagerError:
+                        pass
+                if was_running:
+                    try:
+                        self.start(server)
+                    except ManagerError:
+                        pass
+                db.add(AuditEvent(action="servers.auto_update_failed", target=server.id, detail=str(exc)[:500]))
+                db.commit()
+                self.notify_discord(server, "server_update_failed", f"scheduled update failed: {str(exc)[:300]}")
         return created

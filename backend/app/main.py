@@ -6,6 +6,7 @@ import json
 import socket
 import struct
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated, Any
@@ -22,7 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import settings
-from .database import Base, engine, get_db
+from .database import Base, SessionLocal, engine, get_db
 from .manager import DockerServerManager, ManagerError
 from .models import AuditEvent, Backup, GameServer, User
 from .schemas import BackupCreate, ConfigPatch, ConsoleCommand, LoginRequest, ModInstall, ServerCreate, ServerPatch, SetupRequest, TokenOut, UserCreate, UserOut
@@ -39,8 +40,29 @@ ROLE_PERMISSIONS = {
 }
 
 
+DISCORD_WEBHOOK_HOSTS = {"discord.com", "discordapp.com", "ptb.discord.com", "canary.discord.com"}
+DISCORD_EVENTS = {
+    "server_created", "server_started", "server_stopped", "server_restarted", "server_installed",
+    "server_updated", "server_update_failed", "backup_created", "backup_restored", "mod_installed",
+}
+
+
 def api_error(status: int, detail: str) -> None:
     raise HTTPException(status_code=status, detail=detail)
+
+
+def validate_discord_webhook(value: str) -> str:
+    parsed = urlparse(value.strip())
+    parts = [part for part in parsed.path.split("/") if part]
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in DISCORD_WEBHOOK_HOSTS
+        or parsed.port not in {None, 443}
+        or len(parts) < 4
+        or parts[:2] != ["api", "webhooks"]
+    ):
+        api_error(422, "Enter a valid HTTPS Discord webhook URL")
+    return value.strip()
 
 
 def get_manager() -> DockerServerManager:
@@ -97,6 +119,12 @@ def default_config(server: ServerCreate) -> dict[str, Any]:
         "world": {"map": server.map_name, "weather": "dynamic", "time_settings": "default"},
         "networking": {"port": server.game_port, "query_port": server.query_port, "server_visibility": "public", "rcon_host": "", "rcon_port": "", "rcon_password": ""},
         "backups": {"schedule": "daily"},
+        "automation": {"update_schedule": "off"},
+        "discord": {
+            "enabled": False,
+            "webhook_url": "",
+            "events": {event: True for event in DISCORD_EVENTS},
+        },
     }
 
 
@@ -105,6 +133,8 @@ def server_payload(server: GameServer, manager: DockerServerManager | None = Non
     public_config.get("general", {}).pop("server_password", None)
     public_config.get("networking", {}).pop("rcon_password", None)
     public_config.get("networking", {}).pop("rcon_password_encrypted", None)
+    public_config.get("discord", {}).pop("webhook_url", None)
+    public_config.get("discord", {}).pop("webhook_url_encrypted", None)
     result = {
         "id": server.id, "name": server.name, "description": server.description, "version": server.version,
         "steam_app_id": server.steam_app_id, "game_port": server.game_port, "query_port": server.query_port,
@@ -130,29 +160,51 @@ def rcon_command(host: str, port: int, password: str, command: str) -> str:
         payload = struct.pack("<ii", request_id, kind) + body.encode() + b"\x00\x00"
         return struct.pack("<i", len(payload)) + payload
 
+    def receive_exact(connection: socket.socket, length: int) -> bytes:
+        chunks: list[bytes] = []
+        remaining = length
+        while remaining:
+            chunk = connection.recv(remaining)
+            if not chunk:
+                raise ManagerError("RCON connection closed before a complete response arrived")
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        return b"".join(chunks)
+
+    def receive_packet(connection: socket.socket) -> bytes:
+        length = struct.unpack("<i", receive_exact(connection, 4))[0]
+        if length < 10 or length > 1024 * 1024:
+            raise ManagerError("RCON returned an invalid packet length")
+        return receive_exact(connection, length)
+
     with socket.create_connection((host, port), timeout=8) as conn:
         conn.sendall(packet(10, 3, password))
-        length = struct.unpack("<i", conn.recv(4))[0]
-        answer = conn.recv(length)
+        answer = receive_packet(conn)
         request_id, _ = struct.unpack("<ii", answer[:8])
         if request_id == -1:
             raise ManagerError("RCON authentication failed")
         conn.sendall(packet(11, 2, command))
-        length = struct.unpack("<i", conn.recv(4))[0]
-        answer = conn.recv(length)
+        answer = receive_packet(conn)
         return answer[8:-2].decode("utf-8", errors="replace")
+
+
+def run_scheduled_maintenance() -> None:
+    db = SessionLocal()
+    try:
+        manager = DockerServerManager()
+        manager.schedule_backups(db)
+        manager.schedule_updates(db)
+    finally:
+        db.close()
 
 
 async def automatic_maintenance(stop: asyncio.Event) -> None:
     while not stop.is_set():
         try:
-            db = next(get_db())
-            try:
-                DockerServerManager().schedule_backups(db)
-            finally:
-                db.close()
+            # SteamCMD and archive work can take minutes; keep the API event loop responsive.
+            await asyncio.to_thread(run_scheduled_maintenance)
         except Exception:
-            # The dashboard remains available even if Docker or a scheduled backup is temporarily unavailable.
+            # The dashboard remains available even if Docker or a scheduled task is temporarily unavailable.
             pass
         try:
             await asyncio.wait_for(stop.wait(), timeout=900)
@@ -285,6 +337,7 @@ def create_server(payload: ServerCreate, db: Annotated[Session, Depends(get_db)]
         db.delete(server)
         db.commit()
         api_error(503, str(exc))
+    manager.notify_discord(server, "server_created", "server created and ready to install.")
     audit(db, actor, "servers.create", server.id, server.name)
     return server_payload(server, manager)
 
@@ -359,6 +412,12 @@ def server_action(server_id: str, action: str, db: Annotated[Session, Depends(ge
             except ManagerError:
                 pass
         api_error(503, str(exc))
+    event = {
+        "start": "server_started", "stop": "server_stopped", "restart": "server_restarted",
+        "install": "server_installed", "update": "server_updated",
+    }.get(action)
+    if event:
+        manager.notify_discord(server, event, f"{action} completed.")
     audit(db, actor, f"servers.{action}", server.id)
     return {"ok": True, "action": action, "output": output[-8000:], "metrics": manager.status(server)}
 
@@ -415,19 +474,24 @@ def read_config(server_id: str, db: Annotated[Session, Depends(get_db)], _: Anno
     server = get_server(db, server_id)
     config = json.loads(json.dumps(server.config or {}))
     config.setdefault("general", {})["server_password"] = decrypt(server.password)
-    networking = config.get("networking", {})
+    networking = config.setdefault("networking", {})
     networking["rcon_password"] = decrypt(networking.pop("rcon_password_encrypted", ""))
+    discord = config.setdefault("discord", {})
+    discord["webhook_url"] = decrypt(discord.pop("webhook_url_encrypted", ""))
     return {"config": config}
 
 
 @app.put("/api/servers/{server_id}/config")
 def update_config(server_id: str, payload: ConfigPatch, db: Annotated[Session, Depends(get_db)], actor: Annotated[User, Depends(require("config:edit"))]):
     server = get_server(db, server_id)
-    allowed = {"general", "gameplay", "admins", "world", "networking", "backups"}
+    allowed = {"general", "gameplay", "admins", "world", "networking", "backups", "automation", "discord"}
     if set(payload.config) - allowed:
         api_error(422, "Configuration contains an unsupported section")
-    previous_ports = (server.game_port, server.query_port)
     config = json.loads(json.dumps(payload.config))
+    for section in allowed:
+        if section in config and not isinstance(config[section], dict):
+            api_error(422, f"Configuration section '{section}' must be an object")
+    previous_ports = (server.game_port, server.query_port)
     game_password = config.get("general", {}).pop("server_password", None)
     if game_password is not None:
         server.password = encrypt(str(game_password))
@@ -439,6 +503,31 @@ def update_config(server_id: str, payload: ConfigPatch, db: Annotated[Session, D
         previous_secret = (server.config or {}).get("networking", {}).get("rcon_password_encrypted")
         if previous_secret:
             networking["rcon_password_encrypted"] = previous_secret
+
+    automation = config.setdefault("automation", {})
+    if automation.get("update_schedule", "off") not in {"off", "daily", "weekly"}:
+        api_error(422, "Automatic update schedule must be off, daily, or weekly")
+
+    discord = config.setdefault("discord", {})
+    webhook_url = discord.pop("webhook_url", None)
+    if webhook_url is not None:
+        if not isinstance(webhook_url, str):
+            api_error(422, "Discord webhook URL must be a string")
+        if webhook_url.strip():
+            discord["webhook_url_encrypted"] = encrypt(validate_discord_webhook(webhook_url))
+        else:
+            discord.pop("webhook_url_encrypted", None)
+    else:
+        previous_webhook = (server.config or {}).get("discord", {}).get("webhook_url_encrypted")
+        if previous_webhook:
+            discord["webhook_url_encrypted"] = previous_webhook
+    discord["enabled"] = bool(discord.get("enabled", False))
+    events = discord.setdefault("events", {})
+    if not isinstance(events, dict) or set(events) - DISCORD_EVENTS or any(not isinstance(value, bool) for value in events.values()):
+        api_error(422, "Discord notification events are invalid")
+    for event in DISCORD_EVENTS:
+        events.setdefault(event, True)
+
     server.config = config
     general = config.get("general", {})
     if isinstance(general.get("max_players"), int):
@@ -468,6 +557,7 @@ def update_config(server_id: str, payload: ConfigPatch, db: Annotated[Session, D
     public_config = json.loads(json.dumps(server.config))
     public_config.get("general", {}).pop("server_password", None)
     public_config.get("networking", {}).pop("rcon_password_encrypted", None)
+    public_config.get("discord", {}).pop("webhook_url_encrypted", None)
     return {"ok": True, "restart_required": manager.status(server)["status"] == "running" and not ports_changed, "config": public_config}
 
 
@@ -485,6 +575,7 @@ def create_backup(server_id: str, payload: BackupCreate, db: Annotated[Session, 
         backup = get_manager().create_backup(db, server, payload.name)
     except ManagerError as exc:
         api_error(503, str(exc))
+    get_manager().notify_discord(server, "backup_created", f"backup '{backup.name}' created.")
     audit(db, actor, "backups.create", backup.id, server.id)
     return {"id": backup.id, "name": backup.name, "size_bytes": backup.size_bytes, "created_at": backup.created_at}
 
@@ -510,6 +601,7 @@ def restore_backup(server_id: str, backup_id: str, db: Annotated[Session, Depend
         get_manager().restore_backup(server, backup)
     except ManagerError as exc:
         api_error(422, str(exc))
+    get_manager().notify_discord(server, "backup_restored", f"backup '{backup.name}' restored; start the server when ready.")
     audit(db, actor, "backups.restore", backup.id, server.id)
     return {"ok": True, "restart_required": True}
 
@@ -537,11 +629,25 @@ def files_endpoint(category: str):
     @app.post(f"/api/servers/{{server_id}}/{category.lower()}/upload")
     async def upload_category(server_id: str, file: UploadFile = File(...), db: Session = Depends(get_db), actor: User = Depends(require("mods:manage"))):
         server = get_server(db, server_id)
-        content = await file.read()
+        manager = get_manager()
+        filename = file.filename or "upload.bin"
+        staging = manager.create_upload_staging_path(server, category, filename)
+        total = 0
         try:
-            saved = get_manager().upload(server, category, file.filename or "upload.bin", content)
+            with staging.open("wb") as destination:
+                while chunk := await file.read(1024 * 1024):
+                    total += len(chunk)
+                    if total > settings().max_upload_bytes:
+                        api_error(413, f"Upload exceeds the {settings().max_upload_bytes // (1024 * 1024)} MB limit")
+                    destination.write(chunk)
+            saved = manager.commit_staged_upload(server, category, filename, staging)
         except ManagerError as exc:
             api_error(422, str(exc))
+        except OSError as exc:
+            api_error(500, f"Could not save uploaded file: {exc}")
+        finally:
+            await file.close()
+            staging.unlink(missing_ok=True)
         audit(db, actor, f"{category.lower()}.upload", server.id, saved.name)
         return {"name": saved.name, "size_bytes": saved.stat().st_size}
 
@@ -575,6 +681,7 @@ def workshop_mod(server_id: str, payload: ModInstall, db: Annotated[Session, Dep
         output = get_manager().run_steam_action(server, "workshop", payload.workshop_id)
     except ManagerError as exc:
         api_error(502, str(exc))
+    get_manager().notify_discord(server, "mod_installed", f"Workshop mod {payload.workshop_id} installed.")
     audit(db, actor, "mods.workshop", server.id, payload.workshop_id)
     return {"ok": True, "output": output[-8000:]}
 
