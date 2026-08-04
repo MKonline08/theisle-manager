@@ -1,1 +1,108 @@
-IyBUaGUgSXNsZSBNYW5hZ2VyCgpBIHNlbGYtaG9zdGVkIERvY2tlciBwYW5lbCBmb3IgcnVubmluZyBtdWx0aXBsZSBpc29sYXRlZCBUaGUgSXNsZSBkZWRpY2F0ZWQtc2VydmVyIGluc3RhbmNlcy4gSXQgaW5jbHVkZXMgYSBSZWFjdC9UYWlsd2luZCBkYXNoYm9hcmQsIEZhc3RBUEkgUkVTVC9XZWJTb2NrZXQgQVBJLCBQb3N0Z3JlU1FMIHBlcnNpc3RlbmNlLCBTdGVhbUNNRCBsaWZlY3ljbGUgYWN0aW9ucywgYmFja3VwcywgbW9kL3BsdWdpbiBtYW5hZ2VtZW50LCByb2xlLWJhc2VkIGFjY2VzcywgYW5kIHNlcnZlciByZXNvdXJjZSBsaW1pdHMuCgo+IENvbmZpcm0gdGhlIGN1cnJlbnQgZGVkaWNhdGVkLXNlcnZlciBhcHAgSUQgYW5kIFN0ZWFtQ01EIGFjY291bnQgcmVxdWlyZW1lbnRzIGZyb20gVGhlIElzbGUncyBvZmZpY2lhbCBkb2N1bWVudGF0aW9uIGJlZm9yZSBmaXJzdCBkZXBsb3ltZW50LiBUaGUgZGVmYXVsdCBgU1RFQU1fQVBQX0lEPTQxMjY4MGAgaXMgY29uZmlndXJhYmxlIGJlY2F1c2UgcHVibGlzaGVyIGRpc3RyaWJ1dGlvbiBjYW4gY2hhbmdlLgoKIyMgSW5zdGFsbCBvbiBEZWJpYW4gb3IgVWJ1bnR1CgpJbnN0YWxsIERvY2tlciBFbmdpbmUgYW5kIHRoZSBEb2NrZXIgQ29tcG9zZSBwbHVnaW4sIHRoZW4gY2xvbmUgb3IgY29weSB0aGUgcHJvamVjdCB0byB0aGUgc2VydmVyLiBGcm9tIHRoZSBwcm9qZWN0IGZvbGRlciBydW46CgpgYGBiYXNoCnN1ZG8gYmFzaCBzY3JpcHRzL2luc3RhbGwuc2gKYGBgCgpUaGUgaW5zdGFsbGVyIGNvcGllcyB0aGUgYXBwbGljYXRpb24gdG8gYC9vcHQvdGhlaXNsZS1tYW5hZ2VyYCwgZ2VuZXJhdGVzIHVuaXF1ZSBQb3N0Z3JlU1FML0pXVCBzZWNyZXRzIGluIGAuZW52YCwgYnVpbGRzIGltYWdlcywgc3RhcnRzIHRoZSBzdGFjaywgYW5kIHByaW50cyB0aGUgcGFuZWwgVVJMLiBPcGVuIGBodHRwOi8vU0VSVkVSLUlQOjgwODBgIGFuZCBjcmVhdGUgdGhlIGZpcnN0IE93bmVyIGFjY291bnQuCgpGb3IgYSBtYW51YWwgZGVwbG95bWVudCwgY29weSBgLmVudi5leGFtcGxlYCB0byBgLmVudmAsIHJlcGxhY2UgdGhlIHBhc3N3b3JkIGFuZCBKV1QgcGxhY2Vob2xkZXJzIHdpdGggbG9uZyByYW5kb20gdmFsdWVzLCB0aGVuIHJ1bjoKCmBgYGJhc2gKZG9ja2VyIGNvbXBvc2UgdXAgLWQgLS1idWlsZApgYGAKCmBzZXJ2ZXItaW1hZ2VgIGlzIGEgb25lLXNob3QgQ29tcG9zZSBidWlsZCB0YXJnZXQgdGhhdCBwcm9kdWNlcyBgdGhlaXNsZS1tYW5hZ2VyLXNlcnZlcjpsYXRlc3RgOyBpdCBleGl0cyBzdWNjZXNzZnVsbHkgYWZ0ZXIgdGhhdCBidWlsZC4gQ29uZmlybSBhbGwgc2VydmljZXMgd2l0aCBgZG9ja2VyIGNvbXBvc2UgcHNgLgoKIyMgQ2FzYU9TCgoxLiBJbiBDYXNhT1MsIGNob29zZSAqKkFwcCBTdG9yZSDihpIgQ3VzdG9tIEluc3RhbGwqKiBhbmQgaW1wb3J0IHRoaXMgcmVwb3NpdG9yeSdzIGBkb2NrZXItY29tcG9zZS55bWxgLgoyLiBFbnRlciBzdHJvbmcgdmFsdWVzIGZvciBgUE9TVEdSRVNfUEFTU1dPUkRgIGFuZCBgSldUX1NFQ1JFVGAuCjMuIENoYW5nZSBgUEFORUxfUE9SVGAgaWYgbmVjZXNzYXJ5IGFuZCBpbnN0YWxsLgo0LiBPcGVuIHRoZSBDYXNhT1MgYXBwIGNhcmQgYW5kIGNyZWF0ZSB0aGUgZmlyc3QgT3duZXIgYWNjb3VudC4KClRoZSByb290IGNvbXBvc2UgZmlsZSBpbmNsdWRlcyBDYXNhT1MgbWV0YWRhdGEgYW5kIHRoZSBidW5kbGVkIFthcHAgaWNvbl0oY2FzYW9zL2ljb24uc3ZnKS4gTmFtZWQgRG9ja2VyIHZvbHVtZXMga2VlcCBhcHBsaWNhdGlvbiBkYXRhIGJldHdlZW4gQ2FzYU9TIHVwZ3JhZGVzLgoKIyMgQXJjaGl0ZWN0dXJlCgp8IENvbnRhaW5lciB8IFB1cnBvc2UgfAp8IC0tLSB8IC0tLSB8CnwgYHRoZWlzbGUtbWFuYWdlci13ZWJgIHwgTmdpbnggc2VydmluZyB0aGUgUmVhY3QvVGFpbHdpbmQgZGFzaGJvYXJkIGFuZCBwcm94eWluZyBBUEkvV2ViU29ja2V0IHRyYWZmaWMuIHwKfCBgdGhlaXNsZS1tYW5hZ2VyLWFwaWAgfCBGYXN0QVBJIGNvbnRyb2wgcGxhbmUsIGRhdGEgYWNjZXNzLCBhdXRoZW50aWNhdGlvbiwgYmFja3VwcywgZmlsZSBvcGVyYXRpb25zLCBhbmQgRG9ja2VyIG9yY2hlc3RyYXRpb24uIHwKfCBgdGhlaXNsZS1tYW5hZ2VyLWRiYCB8IFBvc3RncmVTUUwgMTYgcGVyc2lzdGVudCBkYXRhYmFzZS4gfAp8IGBzZXJ2ZXItaW1hZ2VgIHwgQnVpbGRzIHRoZSByZXVzYWJsZSBTdGVhbUNNRCBUaGUgSXNsZSBzZXJ2ZXIgaW1hZ2UuIHwKCkVhY2ggbWFuYWdlZCBpbnN0YW5jZSBnZXRzIGFuIGlzb2xhdGVkIGNvbnRhaW5lciwgZ2FtZS9xdWVyeSBwb3J0cywgbWVtb3J5IGFuZCBDUFUgbGltaXRzLCBQSUQgbGltaXQsIHJlc3RhcnQgcG9saWN5LCBKU09OIGxvZyByb3RhdGlvbiwgYW5kIGl0cyBvd24gYFNhdmVkYCwgYENvbmZpZ2AsIGBMb2dzYCwgYE1vZHNgLCBgUGx1Z2luc2AsIGFuZCBgQmFja3Vwc2AgZm9sZGVycy4KCiMjIFNlcnZlciBvcGVyYXRpb25zCgpDcmVhdGUgYSBzZXJ2ZXIgZnJvbSB0aGUgZGFzaGJvYXJkIHdpdGggaXRzIG5hbWUsIGRlc2NyaXB0aW9uLCB2ZXJzaW9uIGxhYmVsLCBwb3J0cywgcGxheWVyIGxpbWl0LCBSQU0vQ1BVL2Rpc2sgbGltaXRzLCByZWdpb24sIHBhc3N3b3JkLCBhbmQgbWFwLiBUaGUgcGFuZWwgdmFsaWRhdGVzIHBvcnRzIGFtb25nIGl0cyBtYW5hZ2VkIHNlcnZlcnMuCgotICoqSW5zdGFsbCoqIGRvd25sb2FkcyB0aGUgY29uZmlndXJlZCBhcHAgdGhyb3VnaCBTdGVhbUNNRC4KLSAqKlN0YXJ0KiosICoqU3RvcCoqLCBhbmQgKipSZXN0YXJ0KiogY29udHJvbCBvbmx5IHRoYXQgc2VydmVyJ3MgY29udGFpbmVyLgotICoqVXBkYXRlKiogY3JlYXRlcyBhIHByZS11cGRhdGUgYXJjaGl2ZSwgcnVucyBTdGVhbUNNRCwgYW5kIHJlc3RvcmVzIHRoZSBhcmNoaXZlIGF1dG9tYXRpY2FsbHkgaWYgU3RlYW1DTUQgZmFpbHMuCi0gKipWZXJpZnkqKiBydW5zIFN0ZWFtQ01EIHZhbGlkYXRpb24uCi0gRGFzaGJvYXJkIG1ldHJpY3Mgc2hvdyBjb250YWluZXIgQ1BVL1JBTS9uZXR3b3JrIGNvdW50ZXJzLCBkaXNrIHVzYWdlLCBwYXJzZWQgcGxheWVyIGNvdW50IHdoZW4gdGhlIGdhbWUgbG9nIHByb3ZpZGVzIGl0LCBtYXAsIHVwdGltZSwgc3RhdHVzLCBhbmQgdmVyc2lvbiBsYWJlbC4KCkNvbnNvbGUgaW5wdXQgaXMgZGVsaWJlcmF0ZWx5IGxpbWl0ZWQgdG8gYHJlc3RhcnRgLCBgc3RvcGAsIGBzYXZlYCwgYGJyb2FkY2FzdGAsIGBraWNrYCwgYW5kIGBiYW5gLiBUaGUgbGFzdCBmb3VyIHVzZSBzdGFuZGFyZCBSQ09OIHdoZW4gdGhlIGdhbWUgc2VydmVyIGVuYWJsZXMgaXQgYW5kIGl0cyBkZXRhaWxzIGFyZSBlbnRlcmVkIGluICoqQ29uZmlndXJhdGlvbiDihpIgTmV0d29ya2luZyoqLiBUaGUgcGFuZWwgbmV2ZXIgc2VuZHMgY29uc29sZSB0ZXh0IHRvIGEgc2hlbGwuCgojIyBDb25maWd1cmF0aW9uLCBtb2RzLCBhbmQgcGx1Z2lucwoKVGhlIGNvbmZpZ3VyYXRpb24gc2NyZWVuIGNvbnRhaW5zIGZvcm1zIGZvciBnYW1lIHBhc3N3b3JkLCBwbGF5ZXIgY291bnQsIGdhbWVwbGF5IG11bHRpcGxpZXJzLCBhZG1pbnMvbW9kZXJhdG9ycywgbWFwL3dlYXRoZXIvdGltZSwgbmV0d29ya2luZy9SQ09OLCBhbmQgYXV0b21hdGljIGJhY2t1cCBmcmVxdWVuY3kuIFNhdmluZyB3cml0ZXMgcGFuZWwgY29uZmlndXJhdGlvbiBhbmQgZ2VuZXJhdGVkIGAuaW5pYCBkYXRhOyBtYW51YWwgYC5pbmlgIGVkaXRpbmcgaXMgbm90IHJlcXVpcmVkLiBDaGFuZ2luZyBnYW1lL3F1ZXJ5IHBvcnRzIHJlY3JlYXRlcyB0aGUgZ2FtZSBjb250YWluZXIsIHdoaWxlIG90aGVyIHJ1bnRpbWUgY2hhbmdlcyBzaG91bGQgYmUgZm9sbG93ZWQgYnkgYSBub3JtYWwgcmVzdGFydC4KClRoZSAqKk1vZHMqKiBhbmQgKipQbHVnaW5zKiogdGFicyBtYW5hZ2UgdGhlaXIgb3duIGZvbGRlcnMuIFVwbG9hZCwgZW5hYmxlL2Rpc2FibGUgKGRpc2FibGVkIGZpbGVzIHJldGFpbiBhIGAuZGlzYWJsZWRgIHN1ZmZpeCksIG9yIGRlbGV0ZSBmaWxlcy4gTW9kcyBjYW4gYWxzbyBiZSBpbnN0YWxsZWQgYnkgU3RlYW0gV29ya3Nob3AgSUQgd2hlbiB0aGUgY3VycmVudCBkZWRpY2F0ZWQtc2VydmVyIGFwcCBtYWtlcyBjb21wYXRpYmxlIFdvcmtzaG9wIGNvbnRlbnQgYXZhaWxhYmxlLgoKIyMgQmFja3VwIGFuZCByZWNvdmVyeQoKUGVyLXNlcnZlciBiYWNrdXBzIGFyY2hpdmUgYFNhdmVkYCwgYENvbmZpZ2AsIGBNb2RzYCwgYW5kIGBQbHVnaW5zYC4gQ3JlYXRlIHRoZW0gbWFudWFsbHkgb3IgY2hvb3NlIGhvdXJseSwgZGFpbHksIG9yIHdlZWtseSBhdXRvbWF0aWMgYmFja3Vwcy4gUmVzdG9yZSBzdG9wcyB0aGUgc2VydmVyIGZpcnN0IGFuZCByZWplY3RzIHVuc2FmZSBhcmNoaXZlIHBhdGhzLgoKQ3JlYXRlIGEgcG9ydGFibGUgZnVsbC1wYW5lbCBiYWNrdXAgKGRhdGFiYXNlLCBtYW5hZ2VyIGRhdGEsIGFuZCBlbnZpcm9ubWVudCBmaWxlKSB3aXRoOgoKYGBgYmFzaApzdWRvIGJhc2ggc2NyaXB0cy9iYWNrdXAuc2gKYGBgCgpUaW1lc3RhbXBlZCBvdXRwdXQgaXMgcGxhY2VkIHVuZGVyIGBiYWNrdXBzL2AuIFByb3RlY3QgaXQ6IGl0IGluY2x1ZGVzIGVuY3J5cHRlZCBjcmVkZW50aWFscyBhbmQgYC5lbnZgIGtleSBtYXRlcmlhbC4KCiMjIFVwZGF0ZSBhbmQgaGVhbHRoIGNoZWNrcwoKRnJvbSBhIEdpdCBjaGVja291dDoKCmBgYGJhc2gKc3VkbyBiYXNoIHNjcmlwdHMvdXBkYXRlLnNoCnN1ZG8gYmFzaCBzY3JpcHRzL2hlYWx0aGNoZWNrLnNoCmBgYAoKVGhlIHVwZGF0ZSBzY3JpcHQgZmlyc3QgY3JlYXRlcyBhIGZ1bGwgcGFuZWwgYmFja3VwLCBmYXN0LWZvcndhcmRzIHRoZSBjaGVja291dCwgcmVidWlsZHMgaW1hZ2VzLCBhbmQgcmVzdGFydHMgQ29tcG9zZS4gRm9yIGFub3RoZXIgcmVsZWFzZSBhcHByb2FjaCwgcHJlc2VydmUgYC5lbnZgIGFuZCBEb2NrZXIgdm9sdW1lcywgcmVwbGFjZSB0aGUgYXBwbGljYXRpb24gY29kZSwgdGhlbiBydW4gYGRvY2tlciBjb21wb3NlIHVwIC1kIC0tYnVpbGRgLgoKIyMgU2VjdXJpdHkKCi0gRmlyc3QtcnVuIHNldHVwIGNyZWF0ZXMgdGhlIE93bmVyOyBPd25lcnMgbWF5IGFkZCBBZG1pbiwgTW9kZXJhdG9yLCBhbmQgVmlld2VyIGFjY291bnRzLgotIFVzZXIgcGFzc3dvcmRzIHVzZSBiY3J5cHQuIEdhbWUvUkNPTiBjcmVkZW50aWFscyBhcmUgZW5jcnlwdGVkIGF0IHJlc3QgdXNpbmcgYSBrZXkgZGVyaXZlZCBmcm9tIHJlcXVpcmVkIGBKV1RfU0VDUkVUYDsgbm9ybWFsIHNlcnZlciByZXNwb25zZXMgb21pdCB0aGVtLgotIEpXVCBhdXRoZW50aWNhdGlvbiBwcm90ZWN0cyBBUEkgZW5kcG9pbnRzIGFuZCBjb25zb2xlIFdlYlNvY2tldHMuCi0gVXBsb2FkIHBhdGhzIGFyZSBzYW5pdGl6ZWQgYW5kIGZvbGRlci1saW1pdGVkLiBSZXN0b3JlIHZhbGlkYXRlcyBhcmNoaXZlIHBhdGhzLgotIFRoZSBBUEkgY29udGFpbmVyIGhhcyBEb2NrZXIgc29ja2V0IGFjY2VzcyBiZWNhdXNlIGlzb2xhdGVkIHNlcnZlciBjcmVhdGlvbiBuZWVkcyBpdC4gVHJlYXQgT3duZXIgYWNjZXNzIGFzIERvY2tlci1ob3N0IGFkbWluaXN0cmF0aW9uLgoKRG8gbm90IGV4cG9zZSB0aGlzIHBhbmVsIGRpcmVjdGx5IHRvIHRoZSBwdWJsaWMgaW50ZXJuZXQuIFBsYWNlIGl0IGJlaGluZCBhIFRMUyByZXZlcnNlIHByb3h5IG9yIFZQTi4gUm90YXRpbmcgYEpXVF9TRUNSRVRgIHJlcXVpcmVzIHJlLWVudGVyaW5nIGdhbWUvUkNPTiBjcmVkZW50aWFscy4KCiMjIFRyb3VibGVzaG9vdGluZwoKfCBQcm9ibGVtIHwgUmVzb2x1dGlvbiB8CnwgLS0tIHwgLS0tIHwKfCBQYW5lbCB1bmF2YWlsYWJsZSB8IFJ1biBgZG9ja2VyIGNvbXBvc2UgcHNgLCB0aGVuIGBkb2NrZXIgY29tcG9zZSBsb2dzIHdlYiBhcGlgOyBvcGVuIHRoZSBjb25maWd1cmVkIHBhbmVsIHBvcnQgaW4gdGhlIGZpcmV3YWxsLiB8CnwgU2VydmVyIHdpbGwgbm90IHN0YXJ0IHwgQ2hlY2sgQ29uc29sZSBvdXRwdXQgYW5kIGNvbmZpcm0gdGhlIFN0ZWFtIGFwcCBJRCBhbmQgU3RlYW1DTUQgYWNjZXNzLiBGaXJzdCBpbnN0YWxsYXRpb24gbWF5IHRha2UgdGltZS4gfAp8IEdhbWUgaW1hZ2UgbWlzc2luZyB8IFJ1biBgZG9ja2VyIGNvbXBvc2UgdXAgLWQgLS1idWlsZGA7IHRoZSBBUEkgd2FpdHMgZm9yIHRoZSBidWlsZCBqb2IuIHwKfCBQb3J0IGNvbmZsaWN0IHwgVXNlIHVudXNlZCBwb3J0cy4gVGhlIHBhbmVsIGNoZWNrcyBpdHMgb3duIGluc3RhbmNlcyBidXQgY2Fubm90IHJlc2VydmUgdW5yZWxhdGVkIGhvc3QgcG9ydHMuIHwKfCBXb3Jrc2hvcCBmYWlscyB8IFZlcmlmeSBhcHAvaXRlbSBjb21wYXRpYmlsaXR5IGFuZCBhbm9ueW1vdXMgU3RlYW1DTUQgYWNjZXNzLiB8CnwgUkNPTiBmYWlscyB8IEVuYWJsZSB0aGUgZGVkaWNhdGVkIHNlcnZlcidzIFJDT04gbGlzdGVuZXIgYW5kIGVudGVyIGV4YWN0IGhvc3QvcG9ydC9wYXNzd29yZCB1bmRlciBOZXR3b3JraW5nLiB8CnwgQVBJIHJlZmVyZW5jZSB8IE9wZW4gYC9hcGkvZG9jc2Agb24gdGhlIHBhbmVsIGhvc3QuIHwKClByb2plY3QgZm9sZGVyczogYGJhY2tlbmQvYCAoRmFzdEFQSSksIGBmcm9udGVuZC9gIChSZWFjdC9UeXBlU2NyaXB0L1RhaWx3aW5kKSwgYGRvY2tlci90aGVpc2xlLXNlcnZlci9gIChTdGVhbUNNRCBzZXJ2ZXIgaW1hZ2UpLCBgc2NyaXB0cy9gIChvcGVyYXRpb25zKSwgYW5kIGBjYXNhb3MvYCAobWV0YWRhdGEgYXNzZXQpLiBHZW5lcmF0ZWQgYC5lbnZgLCBmcm9udGVuZCBvdXRwdXQsIGxvZ3MsIGFuZCBydW50aW1lIGRhdGEgYXJlIGlnbm9yZWQgYnkgR2l0Lgo=
+# The Isle Manager
+
+A self-hosted Docker panel for running multiple isolated The Isle dedicated-server instances. It includes a React/Tailwind dashboard, FastAPI REST/WebSocket API, PostgreSQL persistence, SteamCMD lifecycle actions, backups, mod/plugin management, role-based access, and server resource limits.
+
+> Confirm the current dedicated-server app ID and SteamCMD account requirements from The Isle's official documentation before first deployment. The default `STEAM_APP_ID=412680` is configurable because publisher distribution can change.
+
+## Install on Debian or Ubuntu
+
+Install Docker Engine and the Docker Compose plugin, then clone or copy the project to the server. From the project folder run:
+
+```bash
+sudo bash scripts/install.sh
+```
+
+The installer copies the application to `/opt/theisle-manager`, generates unique PostgreSQL/JWT secrets in `.env`, builds images, starts the stack, and prints the panel URL. Open `http://SERVER-IP:8080` and create the first Owner account.
+
+For a manual deployment, copy `.env.example` to `.env`, replace the password and JWT placeholders with long random values, then run:
+
+```bash
+docker compose up -d --build
+```
+
+`server-image` is a one-shot Compose build target that produces `theisle-manager-server:latest`; it exits successfully after that build. Confirm all services with `docker compose ps`.
+
+## CasaOS
+
+1. In CasaOS, choose **App Store → Custom Install** and import this repository's `docker-compose.yml`.
+2. Enter strong values for `POSTGRES_PASSWORD` and `JWT_SECRET`.
+3. Change `PANEL_PORT` if necessary and install.
+4. Open the CasaOS app card and create the first Owner account.
+
+The root compose file includes CasaOS metadata and the bundled [app icon](casaos/icon.svg). Named Docker volumes keep application data between CasaOS upgrades.
+
+## Architecture
+
+| Container | Purpose |
+| --- | --- |
+| `theisle-manager-web` | Nginx serving the React/Tailwind dashboard and proxying API/WebSocket traffic. |
+| `theisle-manager-api` | FastAPI control plane, data access, authentication, backups, file operations, and Docker orchestration. |
+| `theisle-manager-db` | PostgreSQL 16 persistent database. |
+| `server-image` | Builds the reusable SteamCMD The Isle server image. |
+
+Each managed instance gets an isolated container, game/query ports, memory and CPU limits, PID limit, restart policy, JSON log rotation, and its own `Saved`, `Config`, `Logs`, `Mods`, `Plugins`, and `Backups` folders.
+
+## Server operations
+
+Create a server from the dashboard with its name, description, version label, ports, player limit, RAM/CPU/disk limits, region, password, and map. The panel validates ports among its managed servers.
+
+- **Install** downloads the configured app through SteamCMD.
+- **Start**, **Stop**, and **Restart** control only that server's container.
+- **Update** creates a pre-update archive, runs SteamCMD, and restores the archive automatically if SteamCMD fails.
+- **Verify** runs SteamCMD validation.
+- Dashboard metrics show container CPU/RAM/network counters, disk usage, parsed player count when the game log provides it, map, uptime, status, and version label.
+
+Console input is deliberately limited to `restart`, `stop`, `save`, `broadcast`, `kick`, and `ban`. The last four use standard RCON when the game server enables it and its details are entered in **Configuration → Networking**. The panel never sends console text to a shell.
+
+## Configuration, mods, and plugins
+
+The configuration screen contains forms for game password, player count, gameplay multipliers, admins/moderators, map/weather/time, networking/RCON, and automatic backup frequency. Saving writes panel configuration and generated `.ini` data; manual `.ini` editing is not required. Changing game/query ports recreates the game container, while other runtime changes should be followed by a normal restart.
+
+The **Mods** and **Plugins** tabs manage their own folders. Upload, enable/disable (disabled files retain a `.disabled` suffix), or delete files. Mods can also be installed by Steam Workshop ID when the current dedicated-server app makes compatible Workshop content available.
+
+## Backup and recovery
+
+Per-server backups archive `Saved`, `Config`, `Mods`, and `Plugins`. Create them manually or choose hourly, daily, or weekly automatic backups. Restore stops the server first and rejects unsafe archive paths.
+
+Create a portable full-panel backup (database, manager data, and environment file) with:
+
+```bash
+sudo bash scripts/backup.sh
+```
+
+Timestamped output is placed under `backups/`. Protect it: it includes encrypted credentials and `.env` key material.
+
+## Update and health checks
+
+From a Git checkout:
+
+```bash
+sudo bash scripts/update.sh
+sudo bash scripts/healthcheck.sh
+```
+
+The update script first creates a full panel backup, fast-forwards the checkout, rebuilds images, and restarts Compose. For another release approach, preserve `.env` and Docker volumes, replace the application code, then run `docker compose up -d --build`.
+
+## Security
+
+- First-run setup creates the Owner; Owners may add Admin, Moderator, and Viewer accounts.
+- User passwords use bcrypt. Game/RCON credentials are encrypted at rest using a key derived from required `JWT_SECRET`; normal server responses omit them.
+- JWT authentication protects API endpoints and console WebSockets.
+- Upload paths are sanitized and folder-limited. Restore validates archive paths.
+- The API container has Docker socket access because isolated server creation needs it. Treat Owner access as Docker-host administration.
+
+Do not expose this panel directly to the public internet. Place it behind a TLS reverse proxy or VPN. Rotating `JWT_SECRET` requires re-entering game/RCON credentials.
+
+## Troubleshooting
+
+| Problem | Resolution |
+| --- | --- |
+| Panel unavailable | Run `docker compose ps`, then `docker compose logs web api`; open the configured panel port in the firewall. |
+| Server will not start | Check Console output and confirm the Steam app ID and SteamCMD access. First installation may take time. |
+| Game image missing | Run `docker compose up -d --build`; the API waits for the build job. |
+| Port conflict | Use unused ports. The panel checks its own instances but cannot reserve unrelated host ports. |
+| Workshop fails | Verify app/item compatibility and anonymous SteamCMD access. |
+| RCON fails | Enable the dedicated server's RCON listener and enter exact host/port/password under Networking. |
+| API reference | Open `/api/docs` on the panel host. |
+
+Project folders: `backend/` (FastAPI), `frontend/` (React/TypeScript/Tailwind), `docker/theisle-server/` (SteamCMD server image), `scripts/` (operations), and `casaos/` (metadata asset). Generated `.env`, frontend output, logs, and runtime data are ignored by Git.

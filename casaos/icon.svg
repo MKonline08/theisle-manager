@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="The Isle Manager">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#53e89b"/><stop offset="1" stop-color="#1d8c64"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="#07110e"/>
+  <path fill="url(#g)" d="M87 343c51-146 127-220 229-220 52 0 88 17 109 43-51-18-94-2-125 46 42-6 79 3 108 29-85-9-132 29-161 114h-62l-15 58h-58l17-70H87z"/>
+  <circle cx="300" cy="194" r="11" fill="#07110e"/>
+  <path d="M92 413h328" stroke="#53e89b" stroke-width="20" stroke-linecap="round" opacity=".75"/>
+</svg>

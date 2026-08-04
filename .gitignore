@@ -1,0 +1,10 @@
+.env
+data/*
+!data/.gitkeep
+postgres-data/
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+backend/__pycache__/
+backend/**/*.pyc
+*.log

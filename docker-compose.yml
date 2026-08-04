@@ -1,0 +1,95 @@
+name: theisle-manager
+
+x-casaos:
+  architectures:
+    - amd64
+  main: web
+  author: The Isle Manager contributors
+  category: Games
+  description:
+    en_us: Self-hosted management panel for isolated The Isle dedicated server containers.
+  tagline:
+    en_us: Run, configure, back up, and monitor The Isle servers.
+  title:
+    en_us: The Isle Manager
+  port_map: "${PANEL_PORT:-8080}"
+  icon: ./casaos/icon.svg
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: theisle-manager-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-theisle_manager}
+      POSTGRES_USER: ${POSTGRES_USER:-theisle}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    build:
+      context: ./backend
+    image: theisle-manager-api:latest
+    container_name: theisle-manager-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-theisle}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-theisle_manager}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      TZ: ${TZ:-UTC}
+      STEAM_APP_ID: ${STEAM_APP_ID:-412680}
+      THEISLE_SERVER_IMAGE: ${THEISLE_SERVER_IMAGE:-theisle-manager-server:latest}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      LOG_RETENTION_DAYS: 14
+    volumes:
+      - manager-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      server-image:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: ./frontend
+    image: theisle-manager-web:latest
+    container_name: theisle-manager-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${PANEL_PORT:-8080}:80"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+
+  server-image:
+    build:
+      context: ./docker/theisle-server
+    image: ${THEISLE_SERVER_IMAGE:-theisle-manager-server:latest}
+    environment:
+      SERVER_ACTION: build
+    restart: "no"
+
+volumes:
+  postgres-data:
+  manager-data:

@@ -1,0 +1,13 @@
+.git
+.env
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+data
+postgres-data
+backups
+logs
+servers
+mods
+plugins
