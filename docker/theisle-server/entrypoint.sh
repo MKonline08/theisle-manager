@@ -101,12 +101,23 @@ if [[ "$SERVER_MAP" != "Gateway" ]]; then
   MAP_PATH="$SERVER_MAP"
 fi
 LAUNCH_URL="${MAP_PATH}?Port=${SERVER_PORT}?QueryPort=${QUERY_PORT}?MaxPlayers=${MAX_PLAYERS}?SessionName=${SERVER_NAME}?MultiHome=0.0.0.0${PASSWORD_ARG[*]}"
+EOS_ARGS=()
+if [[ -n "${THEISLE_EOS_CLIENT_ID:-}" && -n "${THEISLE_EOS_CLIENT_SECRET:-}" ]]; then
+  # Supply the identity both as Engine.ini and launch overrides so Evrima reliably
+  # receives it on Linux even when the game's config discovery changes between builds.
+  EOS_ARGS=(
+    "-ini:Engine:[EpicOnlineServices]:DedicatedServerClientId=${THEISLE_EOS_CLIENT_ID}"
+    "-ini:Engine:[EpicOnlineServices]:DedicatedServerClientSecret=${THEISLE_EOS_CLIENT_SECRET}"
+  )
+else
+  echo "[manager] EOS credentials are not configured. Set THEISLE_EOS_CLIENT_ID and THEISLE_EOS_CLIENT_SECRET in MK Panel's .env file." >&2
+fi
 echo "[manager] Starting '${SERVER_NAME}' on game port ${SERVER_PORT}, query port ${QUERY_PORT}"
 
-# The wrapper can return before Unreal prints its crash reason to stdout.  Preserve
-# the exit status and expose the game log in the panel console before Docker restarts it.
+# The wrapper can return before Unreal prints its crash reason to stdout. Preserve
+# the exit status and expose the game log in the panel console before Docker retries it.
 set +e
-./TheIsleServer.sh "$LAUNCH_URL" -log
+./TheIsleServer.sh "$LAUNCH_URL" -log "${EOS_ARGS[@]}"
 GAME_EXIT_STATUS=$?
 set -e
 echo "[manager] The Isle process exited with code ${GAME_EXIT_STATUS}."
