@@ -83,7 +83,7 @@ class DockerServerManager:
             return None
 
     def _container_name(self, server: GameServer) -> str:
-        return f"theisle-server-{server.id[:12]}"
+        return f"mk-panel-{server.game_type}-{server.id[:12]}"
 
     def _container(self, server: GameServer):
         try:
@@ -98,54 +98,54 @@ class DockerServerManager:
         # directory avoids assuming UID/GID values from the SteamCMD base image;
         # it is still isolated by a unique bind mount per server container.
         root.chmod(0o777)
-        for directory in ("Saved", "Config", "Logs", "Mods", "Plugins", "Backups"):
+        directories = ("mods", "config", "defaultconfigs", "plugins", "Backups") if server.game_type == "minecraft" else ("Saved", "Config", "Logs", "Mods", "Plugins", "Backups")
+        for directory in directories:
             path = root / directory
             path.mkdir(parents=True, exist_ok=True)
             path.chmod(0o777)
-        saved_config = root / "Saved" / "Config" / "LinuxServer"
-        saved_config.mkdir(parents=True, exist_ok=True)
-        saved_config.chmod(0o777)
+        if server.game_type == "theisle":
+            saved_config = root / "TheIsle" / "Saved" / "Config" / "LinuxServer"
+            saved_config.mkdir(parents=True, exist_ok=True)
+            saved_config.chmod(0o777)
         self.write_config(server)
 
     def write_config(self, server: GameServer) -> None:
         root = self.server_dir(server.id)
-        (root / "Config").mkdir(parents=True, exist_ok=True)
         config = server.config or {}
         general = config.get("general", {})
+        networking = config.get("networking", {})
+        if server.game_type == "minecraft":
+            minecraft = config.get("minecraft", {})
+            properties = [
+                f"server-port={server.game_port}", f"max-players={general.get('max_players', server.max_players)}",
+                f"motd={general.get('server_name', server.name)}", f"level-name={minecraft.get('level_name', 'world')}",
+                f"level-seed={minecraft.get('seed', '')}", f"gamemode={minecraft.get('gamemode', 'survival')}",
+                f"difficulty={minecraft.get('difficulty', 'normal')}", f"online-mode={str(bool(minecraft.get('online_mode', True))).lower()}",
+                f"pvp={str(bool(minecraft.get('pvp', True))).lower()}",
+                "enable-rcon=true", f"rcon.port={networking.get('rcon_port', server.query_port)}",
+                f"rcon.password={decrypt(networking.get('rcon_password_encrypted', networking.get('rcon_password', '')))}",
+            ]
+            (root / "server.properties").write_text("\n".join(properties) + "\n", encoding="utf-8")
+            (root / "Config").mkdir(parents=True, exist_ok=True)
+            (root / "Config" / "panel-config.json").write_text(json.dumps(config, indent=2, sort_keys=True), encoding="utf-8")
+            return
+        (root / "Config").mkdir(parents=True, exist_ok=True)
         gameplay = config.get("gameplay", {})
         admins = config.get("admins", {})
         world = config.get("world", {})
-        networking = config.get("networking", {})
+        rcon_password = decrypt(networking.get("rcon_password_encrypted", networking.get("rcon_password", "")))
         lines = [
-            "[TheIsleManager]",
+            "[/Script/TheIsle.TIGameSession]",
             f"ServerName={general.get('server_name', server.name)}",
+            f"MapName={world.get('map', 'Gateway')}",
+            f"MaxPlayerCount={general.get('max_players', server.max_players)}",
+            f"bServerPassword={str(bool(decrypt(server.password))).lower()}",
             f"ServerPassword={decrypt(server.password)}",
-            f"MaxPlayers={general.get('max_players', server.max_players)}",
-            f"WelcomeMessage={general.get('welcome_message', '')}",
-            "",
-            "[Gameplay]",
-            f"GrowthRate={gameplay.get('growth_rate', 1.0)}",
-            f"DamageMultiplier={gameplay.get('damage_multiplier', 1.0)}",
-            f"FoodMultiplier={gameplay.get('food_multiplier', 1.0)}",
-            f"WaterMultiplier={gameplay.get('water_multiplier', 1.0)}",
-            f"SpawnSettings={json.dumps(gameplay.get('spawn_settings', {}), separators=(',', ':'))}",
-            "",
-            "[World]",
-            f"Map={world.get('map', 'Gateway')}",
-            f"Weather={world.get('weather', 'dynamic')}",
-            f"TimeSettings={world.get('time_settings', 'default')}",
-            "",
-            "[Networking]",
-            f"Port={networking.get('port', server.game_port)}",
             f"QueryPort={networking.get('query_port', server.query_port)}",
-            f"ServerVisibility={networking.get('server_visibility', 'public')}",
-            f"RconHost={networking.get('rcon_host', '')}",
-            f"RconPort={networking.get('rcon_port', '')}",
-            "",
-            "[Admins]",
-            f"AdminIDs={','.join(str(x) for x in admins.get('admin_ids', []))}",
-            f"Moderators={','.join(str(x) for x in admins.get('moderators', []))}",
-            f"Permissions={json.dumps(admins.get('permissions', {}), separators=(',', ':'))}",
+            f"bRconEnabled={str(bool(rcon_password)).lower()}", f"RconPort={networking.get('rcon_port', 8888)}", f"RconPassword={rcon_password}",
+            f"bSpawnAI={str(bool(gameplay.get('spawn_ai', True))).lower()}",
+            f"GrowthMultiplier={gameplay.get('growth_rate', 1.0)}",
+            f"AdminsSteamIDs={','.join(str(x) for x in admins.get('admin_ids', []))}",
         ]
         ini_path = root / "Config" / "TheIsleManager.ini"
         ini_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -155,7 +155,7 @@ class DockerServerManager:
         )
         ini_path.chmod(0o666)
         config_path.chmod(0o666)
-        game_ini_path = root / "Saved" / "Config" / "LinuxServer" / "Game.ini"
+        game_ini_path = root / "TheIsle" / "Saved" / "Config" / "LinuxServer" / "Game.ini"
         game_ini_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         game_ini_path.chmod(0o666)
 
@@ -169,11 +169,34 @@ class DockerServerManager:
         network = self._manager_network()
         # Resource values deliberately come from validated numeric fields only.
         try:
+            if server.game_type == "minecraft":
+                minecraft = (server.config or {}).get("minecraft", {})
+                networking = (server.config or {}).get("networking", {})
+                return self.client.containers.create(
+                    image=self.settings.minecraft_image,
+                    name=self._container_name(server), detach=True,
+                    labels={"io.theisle.manager": "true", "io.theisle.server-id": server.id, "io.mk-panel.game": "minecraft"},
+                    environment={
+                        "EULA": "TRUE", "TYPE": str(minecraft.get("server_type", "FABRIC")).upper(),
+                        "VERSION": str(minecraft.get("minecraft_version", "LATEST")), "SERVER_PORT": str(server.game_port),
+                        "MAX_PLAYERS": str(server.max_players), "MEMORY": f"{max(1024, server.ram_limit_mb - 512)}M",
+                        "MOTD": server.name, "LEVEL": str(minecraft.get("level_name", "world")),
+                        "SEED": str(minecraft.get("seed", "")), "MODE": str(minecraft.get("gamemode", "survival")),
+                        "DIFFICULTY": str(minecraft.get("difficulty", "normal")), "ONLINE_MODE": str(bool(minecraft.get("online_mode", True))).upper(),
+                        "PVP": str(bool(minecraft.get("pvp", True))).upper(), "ENABLE_RCON": "TRUE",
+                        "RCON_PORT": str(networking.get("rcon_port", server.query_port)),
+                        "RCON_PASSWORD": decrypt(networking.get("rcon_password_encrypted", networking.get("rcon_password", ""))),
+                    },
+                    volumes={str(source): {"bind": "/data", "mode": "rw"}}, ports={f"{server.game_port}/tcp": server.game_port},
+                    mem_limit=f"{server.ram_limit_mb}m", nano_cpus=int((server.cpu_limit / 100) * 1_000_000_000), pids_limit=2048,
+                    restart_policy={"Name": "unless-stopped"}, security_opt=["no-new-privileges:true"], cap_drop=["ALL"],
+                    log_config={"type": "json-file", "config": {"max-size": "20m", "max-file": "5"}}, **({"network": network} if network else {}),
+                )
             return self.client.containers.create(
                 image=self.settings.server_image,
                 name=self._container_name(server),
                 detach=True,
-                labels={"io.theisle.manager": "true", "io.theisle.server-id": server.id},
+                labels={"io.theisle.manager": "true", "io.theisle.server-id": server.id, "io.mk-panel.game": "theisle"},
                 environment={
                     "STEAM_APP_ID": server.steam_app_id,
                     "STEAM_BRANCH": self.settings.steam_branch,
@@ -313,6 +336,8 @@ class DockerServerManager:
             )
 
     def run_steam_action(self, server: GameServer, action: str, workshop_id: str | None = None) -> str:
+        if server.game_type != "theisle":
+            raise ManagerError("SteamCMD actions apply only to The Isle. Minecraft updates when its container starts.")
         if action not in {"install", "update", "validate", "workshop"}:
             raise ManagerError("Unsupported Steam action")
         source = self._host_data_dir() / "servers" / server.id
@@ -350,14 +375,17 @@ class DockerServerManager:
         while path.exists():
             path = output_dir / f"{safe_name}-{suffix}.zip"
             suffix += 1
-        include = ("Saved", "Config", "Mods", "Plugins")
+        include = ("world", "mods", "config", "defaultconfigs", "plugins", "server.properties") if server.game_type == "minecraft" else ("TheIsle", "Config", "Mods", "Plugins")
         with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
             for folder in include:
                 folder_path = root / folder
                 if folder_path.exists():
-                    for file in folder_path.rglob("*"):
-                        if file.is_file():
-                            archive.write(file, file.relative_to(root))
+                    if folder_path.is_file():
+                        archive.write(folder_path, folder_path.relative_to(root))
+                    else:
+                        for file in folder_path.rglob("*"):
+                            if file.is_file():
+                                archive.write(file, file.relative_to(root))
         backup = Backup(server_id=server.id, name=path.stem, path=str(path), size_bytes=path.stat().st_size, kind=kind)
         db.add(backup)
         db.commit()
@@ -370,7 +398,7 @@ class DockerServerManager:
             raise ManagerError("Backup file no longer exists")
         root = self.server_dir(server.id)
         root_resolved = root.resolve()
-        allowed_roots = {"Saved", "Config", "Mods", "Plugins"}
+        allowed_roots = {"world", "mods", "config", "defaultconfigs", "plugins", "server.properties"} if server.game_type == "minecraft" else {"TheIsle", "Config", "Mods", "Plugins"}
         max_bytes = min(self.settings.max_restore_bytes, server.disk_limit_mb * 1024 * 1024)
         total_bytes = 0
         try:
@@ -410,9 +438,14 @@ class DockerServerManager:
         safe_name = SAFE_FILE.sub("-", Path(filename).name).strip(".-")
         if not safe_name:
             raise ManagerError("Invalid filename")
-        destination = self.server_dir(server.id) / category / safe_name
+        destination = self.category_dir(server, category) / safe_name
         destination.parent.mkdir(parents=True, exist_ok=True)
         return destination, safe_name
+
+    def category_dir(self, server: GameServer, category: str) -> Path:
+        if server.game_type == "minecraft":
+            return self.server_dir(server.id) / {"Mods": "mods", "Plugins": "plugins"}[category]
+        return self.server_dir(server.id) / category
 
     def create_upload_staging_path(self, server: GameServer, category: str, filename: str) -> Path:
         _, safe_name = self._upload_destination(server, category, filename)
@@ -428,10 +461,38 @@ class DockerServerManager:
         os.replace(staging, destination)
         return destination
 
+    def import_minecraft_modpack(self, server: GameServer, archive_path: Path) -> int:
+        """Safely import client-supplied modpack content without allowing zip-slip paths."""
+        if server.game_type != "minecraft" or not archive_path.is_file():
+            raise ManagerError("Minecraft modpack archive is missing")
+        allowed = {"mods", "config", "defaultconfigs", "kubejs"}
+        root = self.server_dir(server.id).resolve()
+        count = 0
+        try:
+            with zipfile.ZipFile(archive_path) as archive:
+                for item in archive.infolist():
+                    member = Path(item.filename)
+                    if item.is_dir():
+                        continue
+                    if item.flag_bits & 0x1 or not member.parts or member.parts[0] not in allowed:
+                        continue
+                    destination = (root / member).resolve()
+                    if not destination.is_relative_to(root):
+                        raise ManagerError("Modpack contains an unsafe file path")
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    with archive.open(item) as source, destination.open("wb") as output:
+                        shutil.copyfileobj(source, output, length=1024 * 1024)
+                    count += 1
+        except zipfile.BadZipFile as exc:
+            raise ManagerError("Minecraft modpack must be a valid .zip archive") from exc
+        if not count:
+            raise ManagerError("No mods, config, defaultconfigs, or kubejs files were found in this modpack")
+        return count
+
     def list_files(self, server: GameServer, category: str) -> list[dict[str, Any]]:
         if category not in {"Mods", "Plugins"}:
             raise ManagerError("Invalid file category")
-        directory = self.server_dir(server.id) / category
+        directory = self.category_dir(server, category)
         if not directory.exists():
             return []
         return [
@@ -443,7 +504,7 @@ class DockerServerManager:
         safe_name = Path(name).name
         if safe_name != name:
             raise ManagerError("Invalid filename")
-        directory = self.server_dir(server.id) / category
+        directory = self.category_dir(server, category)
         original = directory / safe_name
         disabled = directory / (safe_name[:-9] if safe_name.endswith(".disabled") else safe_name + ".disabled")
         if enabled and original.name.endswith(".disabled"):
@@ -452,7 +513,7 @@ class DockerServerManager:
             original.rename(disabled)
 
     def remove_file(self, server: GameServer, category: str, name: str) -> None:
-        path = self.server_dir(server.id) / category / Path(name).name
+        path = self.category_dir(server, category) / Path(name).name
         if path.name != name or not path.is_file():
             raise ManagerError("File not found")
         path.unlink()
@@ -558,3 +619,4 @@ class DockerServerManager:
                 db.commit()
                 self.notify_discord(server, "server_update_failed", f"scheduled update failed: {str(exc)[:300]}")
         return created
+

@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -112,12 +112,20 @@ def audit(db: Session, actor: User | None, action: str, target: str, detail: str
 
 
 def default_config(server: ServerCreate) -> dict[str, Any]:
+    if server.game_type == "minecraft":
+        return {
+            "general": {"server_name": server.name, "max_players": server.max_players, "welcome_message": ""},
+            "minecraft": {"server_type": "FABRIC", "minecraft_version": "LATEST", "online_mode": True, "difficulty": "normal", "gamemode": "survival", "seed": "", "level_name": "world", "pvp": True},
+            "networking": {"port": server.game_port, "rcon_host": "", "rcon_port": server.query_port, "rcon_password": ""},
+            "backups": {"schedule": "daily"}, "automation": {"update_schedule": "off"},
+            "discord": {"enabled": False, "webhook_url": "", "events": {event: True for event in DISCORD_EVENTS}},
+        }
     return {
         "general": {"server_name": server.name, "max_players": server.max_players, "welcome_message": ""},
         "gameplay": {"growth_rate": 1.0, "damage_multiplier": 1.0, "food_multiplier": 1.0, "water_multiplier": 1.0, "spawn_settings": {}},
         "admins": {"admin_ids": [], "moderators": [], "permissions": {}},
         "world": {"map": server.map_name, "weather": "dynamic", "time_settings": "default"},
-        "networking": {"port": server.game_port, "query_port": server.query_port, "server_visibility": "public", "rcon_host": "", "rcon_port": "", "rcon_password": ""},
+        "networking": {"port": server.game_port, "query_port": server.query_port, "server_visibility": "public", "rcon_host": "", "rcon_port": 8888, "rcon_password": ""},
         "backups": {"schedule": "daily"},
         "automation": {"update_schedule": "off"},
         "discord": {
@@ -136,7 +144,7 @@ def server_payload(server: GameServer, manager: DockerServerManager | None = Non
     public_config.get("discord", {}).pop("webhook_url", None)
     public_config.get("discord", {}).pop("webhook_url_encrypted", None)
     result = {
-        "id": server.id, "name": server.name, "description": server.description, "version": server.version,
+        "id": server.id, "name": server.name, "description": server.description, "version": server.version, "game_type": server.game_type,
         "steam_app_id": server.steam_app_id, "game_port": server.game_port, "query_port": server.query_port,
         "max_players": server.max_players, "ram_limit_mb": server.ram_limit_mb, "cpu_limit": server.cpu_limit,
         "disk_limit_mb": server.disk_limit_mb, "region": server.region, "config": public_config,
@@ -154,8 +162,8 @@ def get_server(db: Session, server_id: str) -> GameServer:
     return server
 
 
-def rcon_command(host: str, port: int, password: str, command: str) -> str:
-    """Execute a standard Source RCON command. The Isle instance must expose RCON."""
+def source_rcon_command(host: str, port: int, password: str, command: str) -> str:
+    """Execute Source-compatible RCON (used by Minecraft)."""
     def packet(request_id: int, kind: int, body: str) -> bytes:
         payload = struct.pack("<ii", request_id, kind) + body.encode() + b"\x00\x00"
         return struct.pack("<i", len(payload)) + payload
@@ -188,6 +196,24 @@ def rcon_command(host: str, port: int, password: str, command: str) -> str:
         return answer[8:-2].decode("utf-8", errors="replace")
 
 
+def isle_rcon_command(host: str, port: int, password: str, command: str) -> str:
+    """Execute The Isle Evrima's game-native RCON protocol, not Source RCON."""
+    names = {"broadcast": 0x10, "announce": 0x10, "kick": 0x30, "ban": 0x20, "save": 0x50}
+    parts = command.split(maxsplit=1)
+    opcode = names.get(parts[0].lower())
+    if opcode is None:
+        raise ManagerError("This command is not supported by The Isle RCON")
+    arguments = parts[1] if len(parts) > 1 else ""
+    with socket.create_connection((host, port), timeout=8) as conn:
+        conn.settimeout(8)
+        conn.sendall(b"\x01" + password.encode("utf-8"))
+        auth = conn.recv(4096).decode("utf-8", errors="replace")
+        if "Password Accepted" not in auth:
+            raise ManagerError("The Isle RCON authentication failed")
+        conn.sendall(bytes((0x02, opcode)) + arguments.encode("utf-8") + b"\x00")
+        return conn.recv(65536).decode("utf-8", errors="replace").strip() or "Command sent"
+
+
 def run_scheduled_maintenance() -> None:
     db = SessionLocal()
     try:
@@ -216,6 +242,11 @@ async def automatic_maintenance(stop: asyncio.Event) -> None:
 async def lifespan(_: FastAPI):
     settings().ensure_directories()
     Base.metadata.create_all(bind=engine)
+    # Existing CasaOS installations predate multi-game support.  This lightweight
+    # migration is safe to run repeatedly and preserves all current server records.
+    if "game_type" not in {column["name"] for column in inspect(engine).get_columns("servers")}:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE servers ADD COLUMN game_type VARCHAR(24) NOT NULL DEFAULT 'theisle'"))
     stop = asyncio.Event()
     task = asyncio.create_task(automatic_maintenance(stop))
     yield
@@ -240,7 +271,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/about")
 def about() -> dict[str, Any]:
-    return {"name": "The Isle Manager", "version": app.version, "steam_app_id": settings().steam_app_id}
+    return {"name": "MK Panel", "version": app.version, "steam_app_id": settings().steam_app_id, "games": ["theisle", "minecraft"]}
 
 
 @app.get("/api/setup/status")
@@ -402,6 +433,16 @@ def server_action(server_id: str, action: str, db: Annotated[Session, Depends(ge
             manager.restart(server)
             output = "Server restart requested"
         elif action in {"install", "update", "verify"}:
+            if server.game_type == "minecraft":
+                if action == "verify":
+                    api_error(422, "Minecraft files are managed by the selected server image; use Restart to validate them.")
+                was_running = manager.status(server)["status"] == "running"
+                manager.delete(server, delete_files=False)
+                manager.start(server)
+                output = "Minecraft server image will download or update when it starts"
+                if not was_running:
+                    manager.stop(server)
+                return {"ok": True, "action": action, "output": output, "metrics": manager.status(server)}
             was_running = manager.status(server)["status"] == "running"
             if action == "update":
                 update_backup = manager.create_backup(db, server, None, "pre-update")
@@ -471,7 +512,7 @@ def console(server_id: str, payload: ConsoleCommand, db: Annotated[Session, Depe
             if not port or not password:
                 api_error(409, "Configure an RCON port and password in Networking before sending in-game commands")
             host = networking.get("rcon_host") or manager._container_name(server)
-            output = rcon_command(str(host), int(port), password, command)
+            output = source_rcon_command(str(host), int(port), password, command) if server.game_type == "minecraft" else isle_rcon_command(str(host), int(port), password, command)
     except (ManagerError, OSError, ValueError) as exc:
         api_error(502, f"Console command failed: {exc}")
     audit(db, actor, "console.command", server.id, command)
@@ -649,7 +690,14 @@ def files_endpoint(category: str):
                     if total > settings().max_upload_bytes:
                         api_error(413, f"Upload exceeds the {settings().max_upload_bytes // (1024 * 1024)} MB limit")
                     destination.write(chunk)
-            saved = manager.commit_staged_upload(server, category, filename, staging)
+            if category == "Mods" and server.game_type == "minecraft" and filename.lower().endswith(".zip"):
+                imported = manager.import_minecraft_modpack(server, staging)
+                saved_name = f"{filename} ({imported} files imported)"
+                saved_size = total
+            else:
+                saved = manager.commit_staged_upload(server, category, filename, staging)
+                saved_name = saved.name
+                saved_size = saved.stat().st_size
         except ManagerError as exc:
             api_error(422, str(exc))
         except OSError as exc:
@@ -657,8 +705,8 @@ def files_endpoint(category: str):
         finally:
             await file.close()
             staging.unlink(missing_ok=True)
-        audit(db, actor, f"{category.lower()}.upload", server.id, saved.name)
-        return {"name": saved.name, "size_bytes": saved.stat().st_size}
+        audit(db, actor, f"{category.lower()}.upload", server.id, saved_name)
+        return {"name": saved_name, "size_bytes": saved_size}
 
     @app.post(f"/api/servers/{{server_id}}/{category.lower()}/{{name}}/toggle")
     def toggle_category(server_id: str, name: str, enabled: bool, db: Annotated[Session, Depends(get_db)], actor: Annotated[User, Depends(require("mods:manage"))]):
@@ -737,3 +785,4 @@ async def console_socket(websocket: WebSocket, server_id: str, token: str = Quer
             pass
     finally:
         db.close()
+

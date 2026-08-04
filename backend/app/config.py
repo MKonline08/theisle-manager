@@ -11,6 +11,7 @@ class Settings:
     steam_app_id = os.getenv("STEAM_APP_ID", "412680")
     steam_branch = os.getenv("STEAM_BRANCH", "evrima")
     server_image = os.getenv("THEISLE_SERVER_IMAGE", "theisle-manager-server:latest")
+    minecraft_image = os.getenv("MINECRAFT_SERVER_IMAGE", "itzg/minecraft-server:java21")
     cors_origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "").split(",") if x.strip()]
     log_retention_days = int(os.getenv("LOG_RETENTION_DAYS", "14"))
     max_upload_bytes = int(os.getenv("MAX_UPLOAD_MB", "2048")) * 1024 * 1024
@@ -25,3 +26,4 @@ class Settings:
 @lru_cache
 def settings() -> Settings:
     return Settings()
+

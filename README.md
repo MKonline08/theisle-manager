@@ -1,6 +1,6 @@
-# The Isle Manager
+# MK Panel
 
-A self-hosted Docker panel for running multiple isolated The Isle dedicated-server instances. It includes a React/Tailwind dashboard, FastAPI REST/WebSocket API, PostgreSQL persistence, SteamCMD lifecycle actions, backups, mod/plugin management, role-based access, and server resource limits.
+MK Panel is a self-hosted CasaOS/Debian game-server panel for The Isle: Evrima and Minecraft Java. It manages isolated containers, live logs, resource limits, backups, updates, and mod uploads from one browser dashboard.
 
 > The default configuration targets The Isle Dedicated Server app `412680` on its current public `evrima` branch. Both `STEAM_APP_ID` and `STEAM_BRANCH` are configurable because publisher distribution can change.
 
@@ -24,7 +24,16 @@ docker compose up -d --build
 
 ## CasaOS
 
-1. In CasaOS, choose **App Store → Custom Install** and import this repository's `docker-compose.yml`.
+### Reliable CasaOS first run
+
+1. In CasaOS, open **App Store â†’ Custom Install** and import `docker-compose.yml`.
+2. Set **both** `POSTGRES_PASSWORD` and `JWT_SECRET` to long private values. CasaOS cannot start the panel if either one is blank.
+3. Install, wait for the panel containers to become healthy, then open `http://CASAOS-IP:8080` and create the first Owner account.
+4. Use **New server**. The Isle uses port `7777`; Minecraft Java uses `25565`. Do not reuse a port from another server.
+
+For an SSH install on Debian, use `sudo bash scripts/install.sh`. It creates the `.env` secrets automatically and will not overwrite an existing installation.
+
+1. In CasaOS, choose **App Store â†’ Custom Install** and import this repository's `docker-compose.yml`.
 2. Enter strong values for `POSTGRES_PASSWORD` and `JWT_SECRET`.
 3. Change `PANEL_PORT` if necessary and install.
 4. Open the CasaOS app card and create the first Owner account.
@@ -53,7 +62,7 @@ Create a server from the dashboard with its name, description, version label, po
 - **Verify** runs SteamCMD validation.
 - Dashboard metrics show container CPU/RAM/network counters, disk usage, parsed player count when the game log provides it, map, uptime, status, and version label.
 
-Console input is deliberately limited to `restart`, `stop`, `save`, `broadcast`, `kick`, and `ban`. The last four use standard RCON when the game server enables it and its details are entered in **Configuration → Networking**. The panel never sends console text to a shell.
+Console input is deliberately limited to `restart`, `stop`, `save`, `broadcast`, `kick`, and `ban`. The last four use standard RCON when the game server enables it and its details are entered in **Configuration â†’ Networking**. The panel never sends console text to a shell.
 
 ## Configuration, mods, and plugins
 
@@ -102,7 +111,7 @@ Do not expose this panel directly to the public internet. Place it behind a TLS 
 | Problem | Resolution |
 | --- | --- |
 | Panel unavailable | Run `docker compose ps`, then `docker compose logs web api`; open the configured panel port in the firewall. |
-| Server will not start or SteamCMD says “Missing configuration” | Confirm `STEAM_APP_ID=412680` and `STEAM_BRANCH=evrima`; first installation may take time. |
+| Server will not start or SteamCMD says â€œMissing configurationâ€ | Confirm `STEAM_APP_ID=412680` and `STEAM_BRANCH=evrima`; first installation may take time. |
 | Game image missing | Run `docker compose up -d --build`; the API waits for the build job. |
 | Port conflict | Use unused ports. The panel checks its own instances but cannot reserve unrelated host ports. |
 | Workshop fails | Verify app/item compatibility and anonymous SteamCMD access. |
@@ -111,3 +120,4 @@ Do not expose this panel directly to the public internet. Place it behind a TLS 
 | API reference | Open `/api/docs` on the panel host. |
 
 Project folders: `backend/` (FastAPI), `frontend/` (React/TypeScript/Tailwind), `docker/theisle-server/` (SteamCMD server image), `scripts/` (operations), and `casaos/` (metadata asset). Generated `.env`, frontend output, logs, and runtime data are ignored by Git.
+

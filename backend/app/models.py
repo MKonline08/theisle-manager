@@ -30,6 +30,7 @@ class GameServer(Base):
     name: Mapped[str] = mapped_column(String(80), unique=True, index=True)
     description: Mapped[str] = mapped_column(String(500), default="")
     version: Mapped[str] = mapped_column(String(64), default="stable")
+    game_type: Mapped[str] = mapped_column(String(24), default="theisle")
     steam_app_id: Mapped[str] = mapped_column(String(32))
     game_port: Mapped[int] = mapped_column(Integer, unique=True)
     query_port: Mapped[int] = mapped_column(Integer, unique=True)
@@ -63,3 +64,4 @@ class AuditEvent(Base):
     target: Mapped[str] = mapped_column(String(255), default="")
     detail: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+

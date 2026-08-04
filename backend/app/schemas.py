@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -28,6 +29,7 @@ class ServerCreate(BaseModel):
     name: str = Field(min_length=2, max_length=80, pattern=r"^[A-Za-z0-9 _.-]+$")
     description: str = Field(default="", max_length=500)
     version: str = Field(default="stable", max_length=64)
+    game_type: Literal["theisle", "minecraft"] = "theisle"
     game_port: int = Field(ge=1024, le=65535)
     query_port: int = Field(ge=1024, le=65535)
     max_players: int = Field(default=100, ge=1, le=300)
@@ -76,3 +78,4 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
