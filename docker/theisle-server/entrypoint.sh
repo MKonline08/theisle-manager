@@ -94,5 +94,12 @@ fi
 cd "$INSTALL_DIR"
 PASSWORD_ARG=()
 [[ -n "$SERVER_PASSWORD" ]] && PASSWORD_ARG=("?Password=${SERVER_PASSWORD}")
+
+# Evrima expects the cooked Gateway path rather than the map's display name.
+MAP_PATH="/Game/TheIsle/Maps/Game/Gateway/Gateway"
+if [[ "$SERVER_MAP" != "Gateway" ]]; then
+  MAP_PATH="$SERVER_MAP"
+fi
+LAUNCH_URL="${MAP_PATH}?Port=${SERVER_PORT}?QueryPort=${QUERY_PORT}?MaxPlayers=${MAX_PLAYERS}?SessionName=${SERVER_NAME}?MultiHome=0.0.0.0${PASSWORD_ARG[*]}"
 echo "[manager] Starting '${SERVER_NAME}' on game port ${SERVER_PORT}, query port ${QUERY_PORT}"
-exec ./TheIsleServer.sh MultiHome=0.0.0.0 "${SERVER_MAP}?Port=${SERVER_PORT}?QueryPort=${QUERY_PORT}?MaxPlayers=${MAX_PLAYERS}?SessionName=${SERVER_NAME}${PASSWORD_ARG[*]}" -log
+exec ./TheIsleServer.sh "$LAUNCH_URL" -log
