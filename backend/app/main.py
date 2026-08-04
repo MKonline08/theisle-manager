@@ -350,14 +350,23 @@ def read_server(server_id: str, db: Annotated[Session, Depends(get_db)], _: Anno
 @app.patch("/api/servers/{server_id}")
 def patch_server(server_id: str, payload: ServerPatch, db: Annotated[Session, Depends(get_db)], actor: Annotated[User, Depends(require("servers:manage"))]):
     server = get_server(db, server_id)
-    for key, value in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    manager = get_manager()
+    was_running = manager.status(server)["status"] == "running"
+    recreate_container = any(key in {"ram_limit_mb", "cpu_limit"} for key in changes)
+    for key, value in changes.items():
         if key == "password":
             value = encrypt(value)
         setattr(server, key, value)
     db.commit()
     db.refresh(server)
-    manager = get_manager()
     manager.write_config(server)
+    if recreate_container:
+        # Docker only applies memory/CPU limits at container creation. Recreate the
+        # container while keeping the bind-mounted server files intact.
+        manager.delete(server, delete_files=False)
+        if was_running:
+            manager.start(server)
     audit(db, actor, "servers.update", server.id)
     return server_payload(server, manager)
 
