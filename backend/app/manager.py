@@ -216,7 +216,10 @@ class DockerServerManager:
                 mem_limit=f"{server.ram_limit_mb}m",
                 nano_cpus=int((server.cpu_limit / 100) * 1_000_000_000),
                 pids_limit=2048,
-                restart_policy={"Name": "unless-stopped"},
+                # Do not hammer SteamCMD after a failed install. Three retries cover
+                # short Steam outages, then the container stays stopped so its log
+                # remains useful and the administrator can retry deliberately.
+                restart_policy={"Name": "on-failure", "MaximumRetryCount": 3},
                 security_opt=["no-new-privileges:true"],
                 cap_drop=["ALL"],
                 log_config={"type": "json-file", "config": {"max-size": "20m", "max-file": "5"}},
