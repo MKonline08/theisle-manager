@@ -31,7 +31,7 @@ class ServerCreate(BaseModel):
     game_port: int = Field(ge=1024, le=65535)
     query_port: int = Field(ge=1024, le=65535)
     max_players: int = Field(default=100, ge=1, le=300)
-    ram_limit_mb: int = Field(default=4096, ge=1024, le=65536)
+    ram_limit_mb: int = Field(default=8192, ge=1024, le=65536)
     cpu_limit: int = Field(default=200, ge=25, le=6400)
     disk_limit_mb: int = Field(default=20480, ge=1024, le=1048576)
     region: str = Field(default="", max_length=64)
