@@ -192,7 +192,7 @@ class DockerServerManager:
                 },
                 mem_limit=f"{server.ram_limit_mb}m",
                 nano_cpus=int((server.cpu_limit / 100) * 1_000_000_000),
-                pids_limit=512,
+                pids_limit=2048,
                 restart_policy={"Name": "unless-stopped"},
                 security_opt=["no-new-privileges:true"],
                 cap_drop=["ALL"],
@@ -243,6 +243,7 @@ class DockerServerManager:
             "disk_bytes": self.directory_size(self.server_dir(server.id)),
             "disk_limit_bytes": server.disk_limit_mb * 1024 * 1024,
             "network_rx_bytes": 0, "network_tx_bytes": 0,
+            "exit_code": None, "oom_killed": False, "restart_count": 0, "error_message": "",
         }
         container = self._container(server)
         if not container:
@@ -251,6 +252,10 @@ class DockerServerManager:
             container.reload()
             result["status"] = container.status
             state = container.attrs.get("State", {})
+            result["exit_code"] = state.get("ExitCode")
+            result["oom_killed"] = bool(state.get("OOMKilled", False))
+            result["restart_count"] = int(container.attrs.get("RestartCount", 0))
+            result["error_message"] = state.get("Error", "")
             started = state.get("StartedAt", "")
             if container.status == "running" and started and not started.startswith("0001"):
                 try:
