@@ -77,7 +77,7 @@ case "${SERVER_ACTION:-run}" in
       rm -rf "$INSTALL_DIR/Mods/$WORKSHOP_ID"
       mkdir -p "$INSTALL_DIR/Mods"
       mv "$SOURCE" "$INSTALL_DIR/Mods/$WORKSHOP_ID"
-      echo "[manager] Workshop item installed in Mods/${WORKSHOP_ID}"
+      echo "[manager] Workshop item installed in Mods/$WORKSHOP_ID"
     else
       echo "[manager] SteamCMD completed but did not produce a workshop folder" >&2
       exit 1
@@ -102,4 +102,23 @@ if [[ "$SERVER_MAP" != "Gateway" ]]; then
 fi
 LAUNCH_URL="${MAP_PATH}?Port=${SERVER_PORT}?QueryPort=${QUERY_PORT}?MaxPlayers=${MAX_PLAYERS}?SessionName=${SERVER_NAME}?MultiHome=0.0.0.0${PASSWORD_ARG[*]}"
 echo "[manager] Starting '${SERVER_NAME}' on game port ${SERVER_PORT}, query port ${QUERY_PORT}"
-exec ./TheIsleServer.sh "$LAUNCH_URL" -log
+
+# The wrapper can return before Unreal prints its crash reason to stdout.  Preserve
+# the exit status and expose the game log in the panel console before Docker restarts it.
+set +e
+./TheIsleServer.sh "$LAUNCH_URL" -log
+GAME_EXIT_STATUS=$?
+set -e
+echo "[manager] The Isle process exited with code ${GAME_EXIT_STATUS}."
+
+GAME_LOG_DIR="$INSTALL_DIR/TheIsle/Saved/Logs"
+if [[ -d "$GAME_LOG_DIR" ]]; then
+  LATEST_GAME_LOG="$(find "$GAME_LOG_DIR" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2-)"
+  if [[ -n "$LATEST_GAME_LOG" && -f "$LATEST_GAME_LOG" ]]; then
+    echo "[manager] --- Unreal log: $LATEST_GAME_LOG (last 160 lines) ---"
+    tail -n 160 "$LATEST_GAME_LOG" || true
+    echo "[manager] --- end Unreal log ---"
+  fi
+fi
+
+exit "$GAME_EXIT_STATUS"
