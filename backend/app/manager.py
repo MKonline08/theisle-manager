@@ -104,9 +104,13 @@ class DockerServerManager:
             path.mkdir(parents=True, exist_ok=True)
             path.chmod(0o777)
         if server.game_type == "theisle":
-            saved_config = root / "TheIsle" / "Saved" / "Config" / "LinuxServer"
+            # SteamCMD runs as an unprivileged user and must create the game tree
+            # beside this panel-managed configuration directory.
+            game_root = root / "TheIsle"
+            saved_config = game_root / "Saved" / "Config" / "LinuxServer"
             saved_config.mkdir(parents=True, exist_ok=True)
-            saved_config.chmod(0o777)
+            for directory in (game_root, game_root / "Saved", game_root / "Saved" / "Config", saved_config):
+                directory.chmod(0o777)
         self.write_config(server)
 
     def write_config(self, server: GameServer) -> None:
@@ -234,6 +238,8 @@ class DockerServerManager:
 
     def start(self, server: GameServer) -> None:
         self.assert_disk_budget(server)
+        # Repair permissions for existing server storage as well as new servers.
+        self.prepare_server(server)
         container = self.ensure_container(server)
         container.reload()
         if container.status != "running":
