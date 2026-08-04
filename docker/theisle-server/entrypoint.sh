@@ -22,6 +22,29 @@ fi
 
 mkdir -p "$INSTALL_DIR"/{Saved,Config,Logs,Mods,Plugins,Backups}
 
+capture_steam_failure() {
+  local status="$1"
+  local log_dir="${HOME}/Steam/logs"
+  mkdir -p "$INSTALL_DIR/Logs"
+  echo "[manager] SteamCMD failed with exit code ${status}. Saving Steam diagnostics to Logs/."
+  for filename in content_log.txt stderr.txt; do
+    if [[ -f "$log_dir/$filename" ]]; then
+      cp "$log_dir/$filename" "$INSTALL_DIR/Logs/steamcmd-$filename"
+      echo "[manager] --- SteamCMD $filename (last 120 lines) ---"
+      tail -n 120 "$log_dir/$filename" || true
+      echo "[manager] --- end SteamCMD $filename ---"
+    fi
+  done
+}
+
+run_steamcmd() {
+  "$STEAMCMD" "$@" || {
+    local status=$?
+    capture_steam_failure "$status"
+    return "$status"
+  }
+}
+
 install_or_update() {
   echo "[manager] Installing or updating Steam app ${APP_ID} (${STEAM_BRANCH:-public})"
   APP_UPDATE=(+app_update "$APP_ID")
@@ -29,7 +52,7 @@ install_or_update() {
     APP_UPDATE+=(-beta "$STEAM_BRANCH")
   fi
   APP_UPDATE+=(validate +quit)
-  "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous "${APP_UPDATE[@]}"
+  run_steamcmd +force_install_dir "$INSTALL_DIR" +login anonymous "${APP_UPDATE[@]}"
 }
 
 case "${SERVER_ACTION:-run}" in
@@ -43,7 +66,7 @@ case "${SERVER_ACTION:-run}" in
       APP_UPDATE+=(-beta "$STEAM_BRANCH")
     fi
     APP_UPDATE+=(validate +quit)
-    "$STEAMCMD" +force_install_dir "$INSTALL_DIR" +login anonymous "${APP_UPDATE[@]}"
+    run_steamcmd +force_install_dir "$INSTALL_DIR" +login anonymous "${APP_UPDATE[@]}"
     exit 0 ;;
   workshop)
     : "${WORKSHOP_ID:?WORKSHOP_ID is required for workshop downloads}"
